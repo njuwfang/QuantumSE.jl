@@ -448,21 +448,54 @@ end
     e
 end
 
-function check_state_equivalence(q1::QState, q2::QState, assumptions::Tuple{Z3.ExprAllocated, Z3.ExprAllocated, Z3.ExprAllocated}, slv_backend_cmd::Cmd=`yices-smt2`)
-    q1.num_qubits == q2.num_qubits || error("The number of qubits does not match")
+function check_state_equivalence(q1::QState, q2::QState, assumptions::Tuple{Z3.ExprAllocated, Z3.ExprAllocated, Z3.ExprAllocated}, slv_backend_cmd::Cmd=`bitwuzla -e 0 -SE kissat`)
+    if q1.num_qubits != q2.num_qubits
+        @info "The number of qubits does not match"
+        return
+    end
     
     ranges = q1.num_qubits+1:2*q1.num_qubits
 
-    _equal(q1.xzs, q2.xzs, ranges) || error("The Stabilizer does not match, Your code is wrong even without error insertion")
+    if ~_equal(q1.xzs, q2.xzs, ranges)
+        @info "The Stabilizer does not match, the program is wrong even without error insertion"
+        return
+    end
 
     _canonicalize_gott!(q1)
     _canonicalize_gott!(q2)
 
     slv = Solver(q1.ctx)
 
+    add(slv, assumptions[1])
+    add(slv, not(assumptions[2]))
+
+    smt2_file_name = "_temp_check_preconditons_"
+
+    open(smt2_file_name*".smt2", "w") do io
+		println(io, "(set-logic QF_BV)")
+        println(io, "(set-option :produce-models true)")
+		println(io, slv)
+		println(io, "(check-sat)")
+		println(io, "(get-model)")
+		println(io, "(exit)")
+	end
+
+    res_string = read(pipeline(`$(slv_backend_cmd) $(smt2_file_name*".smt2")`), String)
+
+    if ~occursin("unsat", res_string)
+        @info "The preconditions of external programs are not satisfied"
+        open(smt2_file_name*".output", "w") do io
+            println(io, res_string)
+        end
+        @info "The assignment that generated the bug has been written to ./$(smt2_file_name).output"
+        return
+    end
+
+    Z3.reset(slv)
+
     conjecture = reduce(&, [simplify(q1.phases[j] ⊻ q2.phases[j]) == _bv_val(q1.ctx, 0) for j in ranges])
 
-    conjecture = assumptions[1] & (not(assumptions[2]) | (assumptions[3] & not(conjecture)))
+    conjecture = assumptions[1] & assumptions[3] & not(conjecture)
 
     add(slv, conjecture)
 
@@ -470,18 +503,23 @@ function check_state_equivalence(q1::QState, q2::QState, assumptions::Tuple{Z3.E
 
     open(smt2_file_name*".smt2", "w") do io
 		println(io, "(set-logic QF_BV)")
+        println(io, "(set-option :produce-models true)")
 		println(io, slv)
 		println(io, "(check-sat)")
 		println(io, "(get-model)")
 		println(io, "(exit)")
 	end
 
-    run(pipeline(
-        slv_backend_cmd,
-        stdin=smt2_file_name*".smt2",
-        stdout=smt2_file_name*".output",
-        append=true
-    ))
+    res_string = read(pipeline(`$(slv_backend_cmd) $(smt2_file_name*".smt2")`), String)
+
+    if ~occursin("unsat", res_string)
+        @info "There exist some allowed errors that program cannot correct"
+        open(smt2_file_name*".output", "w") do io
+            println(io, res_string)
+        end
+        @info "The assignment that generated the bug has been written to ./$(smt2_file_name).output"
+        return
+    end
 
     nothing
 end

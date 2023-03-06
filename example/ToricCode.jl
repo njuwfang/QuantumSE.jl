@@ -130,7 +130,7 @@ end
     s_x = [toric_x_m(d, j) for j in 1:d*d]
     s_z = [toric_z_m(d, j) for j in 1:d*d]
 
-    s_z[d*d*2÷3] = _bv_val(ctx, 0) # a strange bug
+    #s_z[d*d*2÷3] = _bv_val(ctx, 0) # a strange bug
     
     r_x = mwpm(d, s_x, "X")
     r_z = mwpm(d, s_z, "Z")
@@ -140,52 +140,60 @@ end
         sX(j, r_z[j])
     end
 
+    sX(2*d*d*2÷3, r_z[d*d*2÷3] & r_x[d*d*2÷3]) # a strange bug
+
 end
 
 function check_toric_decoder(d::Integer)
 
-	num_qubits = d*d*2
+    @info "Initailization Stage"
+    @time begin
+        num_qubits = d*d*2
 
-	stabilizer = Matrix{Bool}(undef, num_qubits, 2*num_qubits)
-	phases = Vector{Z3.ExprAllocated}(undef, num_qubits)
-	lx = _bv_const(ctx, "lx")
-	lz = _bv_const(ctx, "lz")
+	    stabilizer = Matrix{Bool}(undef, num_qubits, 2*num_qubits)
+	    phases = Vector{Z3.ExprAllocated}(undef, num_qubits)
+	    lx = _bv_const(ctx, "lx")
+	    lz = _bv_const(ctx, "lz")
 
-	@simd for i in 1:d*d-1
-		stabilizer[i,:] = toric_x_s(d, i)
-		stabilizer[i+d*d,:] = toric_z_s(d, i)
-		phases[i] = _bv_val(ctx, 0)
-		phases[i+d*d] = _bv_val(ctx, 0)
-	end
+	    @simd for i in 1:d*d-1
+	    	stabilizer[i,:] = toric_x_s(d, i)
+	    	stabilizer[i+d*d,:] = toric_z_s(d, i)
+	    	phases[i] = _bv_val(ctx, 0)
+	    	phases[i+d*d] = _bv_val(ctx, 0)
+	    end
 
-	stabilizer[d*d,:] = toric_lx1(d)
-	phases[d*d] = lx
-	stabilizer[2*d*d,:] = toric_lz1(d)
-	phases[2*d*d] = lz
+	    stabilizer[d*d,:] = toric_lx1(d)
+	    phases[d*d] = lx
+	    stabilizer[2*d*d,:] = toric_lz1(d)
+	    phases[2*d*d] = lz
 
-    σ = CState([(:d, d),
-        (:toric_code, toric_decoder),
-        (:toric_z_m, toric_z_m),
-        (:toric_x_m, toric_x_m),
-        (:_xadj, _xadj),
-        (:_zadj, _zadj),
-        (:ctx, ctx),
-        (:mwpm, mwpm)
-    ])
+        σ = CState([(:d, d),
+            (:toric_code, toric_decoder),
+            (:toric_z_m, toric_z_m),
+            (:toric_x_m, toric_x_m),
+            (:_xadj, _xadj),
+            (:_zadj, _zadj),
+            (:ctx, ctx),
+            (:mwpm, mwpm)
+        ])
 
-    ρ₀ = from_stabilizer(num_qubits, stabilizer, phases, ctx)
-    ρ = QState(ρ₀)
+        ρ₀ = from_stabilizer(num_qubits, stabilizer, phases, ctx)
+        ρ = QState(ρ₀)
 
-    ϕ_x = inject_errors(ρ, (d-1)÷2, "X")
-	ϕ_z = inject_errors(ρ, (d-1)÷2, "Z")
+        ϕ_x = inject_errors(ρ, 1, "X")
+	    ϕ_z = inject_errors(ρ, 1, "Z")
 
-    cfg0 = SymConfig(toric_decoder(d), σ, ρ)
+        cfg0 = SymConfig(toric_decoder(d), σ, ρ)
+    end
 
-    for cfg in QuantSymEx(cfg0)
+    @info "Symbolic Execution Stage"
+    @time cfgs = QuantSymEx(cfg0)
+
+    @info "SMT Solver Stage"
+    @time for cfg in cfgs
         check_state_equivalence(
             cfg.ρ, ρ₀,
             (ϕ_x & ϕ_z, cfg.ϕ[1], cfg.ϕ[2]),
-            `yices-smt2`
         )
     end
 
