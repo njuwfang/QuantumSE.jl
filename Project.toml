@@ -3,6 +3,11 @@ uuid = "f27a11fe-df42-48ab-baf7-2c7df1fe28fa"
 authors = ["njuwfang <njuwfang@gmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
+Z3 = "06b161dc-0161-11ea-0f74-41f836f4024b"
+
 [compat]
 julia = "1"
 
