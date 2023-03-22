@@ -146,13 +146,17 @@ function QuantSymEx(cfg::SymConfig)
             inst.args[2]
         )
         new_S = Expr(:block, Expr(:quote, inst.args[2]))
-        qprogs = eval(Expr(:comprehension, new_S, inst.args[1]))
+        qprogs = [CEval(CState(Dict([(inst.args[1].args[1], j)])), new_S) for j in CEval(cfg.σ, inst.args[1])]
+        #qprogs = CEval(cfg.σ, Expr(:comprehension, new_S, inst.args[1]))
         n_qprog = length(qprogs)
         S = copy(cfg.S)
         for j in 1:n_qprog
             cfg.S.args = qprogs[j].args
             cfg = QuantSymEx(cfg)[1]
         end
+        #S = copy(cfg.S)
+        #cfg.S.args = [vcat([s.args for s in qprogs]...);cfg.S.args[2:end]]
+        #@time QuantSymEx(cfg)
         cfg.S.args = S.args[2:end]
         return QuantSymEx(cfg)
     else

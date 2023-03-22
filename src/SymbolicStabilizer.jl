@@ -1,5 +1,7 @@
 using Z3
-using LinearAlgebra: I
+using LinearAlgebra: I, nullspace, rank
+using SimpleGF2: rref
+using InvertedIndices
 
 @inline _mod(j) = (j-1)>>6 + 1
 @inline _rem(j) = UInt64(0x1) << ((j-1)&(0x3f))
@@ -8,6 +10,8 @@ _len2(j) = Int(ceil(log2(j)))
 
 @inline _bv_val(ctx, v::Integer) = bv_val(ctx, v, 1)
 @inline _bv_const(ctx, s::String) = bv_const(ctx, s, 1)
+
+_sum(ctx, e, num_qubits) = sum( (x -> concat(bv_val(ctx, 0, _len2(num_qubits)), x)).(e) )
 
 struct QState
     num_qubits::UInt32
@@ -210,6 +214,57 @@ function from_stabilizer(num_qubits::Integer, Stabilizer::Matrix{Bool}, phases1:
     _canonicalize_gott!(result)
 
     result
+end
+
+function logical_operators(H1, H2)
+    n = size(H1,2)
+    X = rref(H1)
+    nx = rank(X)
+    X_idxs = [findfirst(!iszero, X[j,:]) for j in 1:nx]
+    Z = rref(H2[:,Not(X_idxs)])
+    nz = rank(Z)
+    Z_idxs = [[1:n...][Not(X_idxs)][findfirst(!iszero, Z[j,:])] for j in 1:nz]
+    nl = n - nx - nz
+    L = zeros(GF2, nl, n)
+    L[1:nl, X_idxs] = X[1:nx,Not([X_idxs;Z_idxs])]'
+    L[1:nl, Not([X_idxs;Z_idxs])] += I
+    
+    L
+end
+
+function from_css_code(HX, HZ, ctx::Z3.ContextAllocated)
+    n = size(HX, 2)
+
+    X = rref(HX)
+    nx = rank(X)
+    X = X[1:nx,:]
+
+    Z = rref(HZ)
+    nz = rank(Z)
+    Z = Z[1:nz,:]
+
+    LZ = logical_operators(X, Z)
+    LX = logical_operators(Z, X)
+    nl = size(LZ, 1)
+    dx = minimum([length(findall(!iszero, LX[j,:])) for j in 1:nl])
+    dz = minimum([length(findall(!iszero, LZ[j,:])) for j in 1:nl])
+    println("[[n, k, dx, dz]] = [[$(n), $(nl), dx<$(dx), dz<$(dz)]]")
+    
+    stabilizer1 = Matrix{Bool}([[X;LX] zeros(GF2, nx+nl, n);zeros(GF2, nz, n) Z])
+    phases1 = [_bv_val(ctx, 0) for j in 1:n]
+    for j in 1:nl
+        phases1[nx+j] = _bv_const(ctx, "lx$(j)")
+    end
+    ρ1 = from_stabilizer(n, stabilizer1, phases1, ctx)
+
+    stabilizer2 = Matrix{Bool}([X zeros(GF2, nx, n);zeros(GF2, nz+nl, n) [Z;LZ]])
+    phases2 = [_bv_val(ctx, 0) for j in 1:n]
+    for j in 1:nl
+        phases2[nx+nz+j] = _bv_const(ctx, "lz$(j)")
+    end
+    ρ2 = from_stabilizer(n, stabilizer2, phases2, ctx)
+
+    ρ1, ρ2, dx, dz
 end
 
 function print_full_tableau(q::QState)
@@ -427,15 +482,15 @@ function inject_errors(q::QState, max_num_errors::Integer, error_type::String)
     nothing
 end
 
-function inject_errors(q::QState, max_num_errors::Integer, error_type::String)
+function inject_errors(q::QState, error_type::String)
     terms = Vector{Z3.ExprAllocated}(undef, q.num_qubits)
     sGate = error_type == "X" ? sX : sZ
-    e = [_bv_const(q.ctx, "$(error_type)_error_$(j)") for j in 1:q.num_qubits]
+    errors = [_bv_const(q.ctx, "$(error_type)_error_$(j)") for j in 1:q.num_qubits]
     for j in 1:q.num_qubits
-        sGate(q, j, e[j])
+        sGate(q, j, errors[j])
     end
 
-    return (sum( (x -> concat(bv_val(q.ctx, 0, _len2(q.num_qubits)), x)).(e) ) <= bv_val(q.ctx, max_num_errors, _len2(q.num_qubits)+1))
+    return errors
 end
 
 @inline function _equal(a, b, ranges)
@@ -451,18 +506,18 @@ end
 function check_state_equivalence(q1::QState, q2::QState, assumptions::Tuple{Z3.ExprAllocated, Z3.ExprAllocated, Z3.ExprAllocated}, slv_backend_cmd::Cmd=`bitwuzla -e 0 -SE kissat`)
     if q1.num_qubits != q2.num_qubits
         @info "The number of qubits does not match"
-        return
+        return false
     end
     
     ranges = q1.num_qubits+1:2*q1.num_qubits
 
-    if ~_equal(q1.xzs, q2.xzs, ranges)
-        @info "The Stabilizer does not match, the program is wrong even without error insertion"
-        return
-    end
-
     _canonicalize_gott!(q1)
     _canonicalize_gott!(q2)
+
+    if ~_equal(q1.xzs, q2.xzs, ranges)
+        @info "The Stabilizer does not match, the program is wrong even without error insertion"
+        return false
+    end
 
     slv = Solver(q1.ctx)
 
@@ -487,8 +542,8 @@ function check_state_equivalence(q1::QState, q2::QState, assumptions::Tuple{Z3.E
         open(smt2_file_name*".output", "w") do io
             println(io, res_string)
         end
-        @info "The assignment that generated the bug has been written to ./$(smt2_file_name).output"
-        return
+        @info "The assignment that generates the bug has been written to ./$(smt2_file_name).output"
+        return false
     end
 
     Z3.reset(slv)
@@ -513,13 +568,13 @@ function check_state_equivalence(q1::QState, q2::QState, assumptions::Tuple{Z3.E
     res_string = read(pipeline(`$(slv_backend_cmd) $(smt2_file_name*".smt2")`), String)
 
     if ~occursin("unsat", res_string)
-        @info "There exist some allowed errors that program cannot correct"
+        @info "There exist some allowed errors that the program cannot correct"
         open(smt2_file_name*".output", "w") do io
             println(io, res_string)
         end
         @info "The assignment that generated the bug has been written to ./$(smt2_file_name).output"
-        return
+        return false
     end
 
-    nothing
+    return true
 end

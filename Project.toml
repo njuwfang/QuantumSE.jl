@@ -4,8 +4,14 @@ authors = ["njuwfang <njuwfang@gmail.com> and contributors"]
 version = "0.1.0"
 
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+InvertedIndices = "41ab1584-1d38-5bbf-9106-f11c6c58b48f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
+SimpleGF2 = "26dc7fb7-0d88-57af-8ff4-0a7e14249ddd"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Z3 = "06b161dc-0161-11ea-0f74-41f836f4024b"
 
 [compat]

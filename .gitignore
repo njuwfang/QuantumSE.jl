@@ -2,3 +2,5 @@
 
 *.smt2
 *.output
+
+bzla

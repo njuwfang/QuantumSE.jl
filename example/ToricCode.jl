@@ -140,8 +140,8 @@ end
         sX(j, r_z[j])
     end
 
-    sX(2*d*d*2÷3, r_z[d*d*2÷3] & r_x[d*d*2÷3]) # a strange bug
-
+    #sX(2*d*d*2÷3, r_z[d*d*2÷3] & r_x[d*d*2÷3]) # a strange bug
+    #sX(a, r_z[d*d*2÷3] & r_x[d*d*2÷3])
 end
 
 function check_toric_decoder(d::Integer)
@@ -167,8 +167,19 @@ function check_toric_decoder(d::Integer)
 	    stabilizer[2*d*d,:] = toric_lz1(d)
 	    phases[2*d*d] = lz
 
+        ρ01 = from_stabilizer(num_qubits, stabilizer, phases, ctx)
+        ρ1 = QState(ρ01)
+
+        stabilizer[d*d,:] = toric_lx2(d)
+	    phases[d*d] = lx
+	    stabilizer[2*d*d,:] = toric_lz2(d)
+	    phases[2*d*d] = lz
+
+        ρ02 = from_stabilizer(num_qubits, stabilizer, phases, ctx)
+        ρ2 = QState(ρ02)
+
         σ = CState([(:d, d),
-            (:toric_code, toric_decoder),
+            (:toric_decoder, toric_decoder),
             (:toric_z_m, toric_z_m),
             (:toric_x_m, toric_x_m),
             (:_xadj, _xadj),
@@ -177,24 +188,47 @@ function check_toric_decoder(d::Integer)
             (:mwpm, mwpm)
         ])
 
-        ρ₀ = from_stabilizer(num_qubits, stabilizer, phases, ctx)
-        ρ = QState(ρ₀)
+        num_x_errors = (d-1)÷2
+        x_errors = inject_errors(ρ1, "X")
+        ϕ_x1 = _sum(ctx, x_errors, num_qubits) == bv_val(ctx, num_x_errors, _len2(num_qubits)+1)
 
-        ϕ_x = inject_errors(ρ, 1, "X")
-	    ϕ_z = inject_errors(ρ, 1, "Z")
+	    #num_z_errors = (d-1)÷2
+        #z_errors = inject_errors(ρ1, "Z")
+        #ϕ_z1 = _sum(ctx, z_errors, num_qubits) == bv_val(ctx, num_z_errors, _len2(num_qubits)+1)
 
-        cfg0 = SymConfig(toric_decoder(d), σ, ρ)
+        x_errors = inject_errors(ρ2, "X")
+        ϕ_x2 = _sum(ctx, x_errors, num_qubits) == bv_val(ctx, num_x_errors, _len2(num_qubits)+1)
+
+	    #num_z_errors = (d-1)÷2
+        #z_errors = inject_errors(ρ2, "Z")
+        #ϕ_z2 = _sum(ctx, z_errors, num_qubits) == bv_val(ctx, num_z_errors, _len2(num_qubits)+1)
+
+        cfg1 = SymConfig(toric_decoder(d), σ, ρ1)
+        cfg2 = SymConfig(toric_decoder(d), σ, ρ2)
     end
 
     @info "Symbolic Execution Stage"
-    @time cfgs = QuantSymEx(cfg0)
-
-    @info "SMT Solver Stage"
-    @time for cfg in cfgs
-        check_state_equivalence(
-            cfg.ρ, ρ₀,
-            (ϕ_x & ϕ_z, cfg.ϕ[1], cfg.ϕ[2]),
-        )
+    @time begin
+        cfgs1 = QuantSymEx(cfg1)
+        cfgs2 = QuantSymEx(cfg2)
     end
 
+    @info "SMT Solver Stage"
+    @time begin
+        for cfg in cfgs1
+            check_state_equivalence(
+                cfg.ρ, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg.ϕ[1], cfg.ϕ[2]),
+                `./bzla 30`
+            ) || break
+        end
+
+        for cfg in cfgs2
+            check_state_equivalence(
+                cfg.ρ, ρ02, (ϕ_x2 #=& ϕ_z2=#, cfg.ϕ[1], cfg.ϕ[2]),
+                `./bzla 30`
+            ) || break
+        end
+    end
+
+    nothing
 end
