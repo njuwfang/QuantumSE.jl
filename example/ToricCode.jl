@@ -1,4 +1,4 @@
-using QSE
+using QuantumSE
 using Z3
 
 ctx = Context()
@@ -129,8 +129,6 @@ end
 
     s_x = [toric_x_m(d, j) for j in 1:d*d]
     s_z = [toric_z_m(d, j) for j in 1:d*d]
-
-    #s_z[d*d*2÷3] = _bv_val(ctx, 0) # a strange bug
     
     r_x = mwpm(d, s_x, "X")
     r_z = mwpm(d, s_z, "Z")
@@ -140,8 +138,11 @@ end
         sX(j, r_z[j])
     end
 
-    #sX(2*d*d*2÷3, r_z[d*d*2÷3] & r_x[d*d*2÷3]) # a strange bug
-    #sX(a, r_z[d*d*2÷3] & r_x[d*d*2÷3])
+    # a strange bug
+    e = reduce(&, r_z[1:(d-1)÷2])
+
+    sX(1, e)
+
 end
 
 function check_toric_decoder(d::Integer)
@@ -168,7 +169,7 @@ function check_toric_decoder(d::Integer)
 	    phases[2*d*d] = lz
 
         ρ01 = from_stabilizer(num_qubits, stabilizer, phases, ctx)
-        ρ1 = QState(ρ01)
+        ρ1 = copy(ρ01)
 
         stabilizer[d*d,:] = toric_lx2(d)
 	    phases[d*d] = lx
@@ -176,7 +177,7 @@ function check_toric_decoder(d::Integer)
 	    phases[2*d*d] = lz
 
         ρ02 = from_stabilizer(num_qubits, stabilizer, phases, ctx)
-        ρ2 = QState(ρ02)
+        ρ2 = copy(ρ02)
 
         σ = CState([(:d, d),
             (:toric_decoder, toric_decoder),
@@ -215,20 +216,27 @@ function check_toric_decoder(d::Integer)
 
     @info "SMT Solver Stage"
     @time begin
+        res = true
         for cfg in cfgs1
-            check_state_equivalence(
+            if !check_state_equivalence(
                 cfg.ρ, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg.ϕ[1], cfg.ϕ[2]),
-                `./bzla 30`
-            ) || break
+                `./bzla 30`)
+                res = false
+                break
+            end
         end
 
-        for cfg in cfgs2
-            check_state_equivalence(
-                cfg.ρ, ρ02, (ϕ_x2 #=& ϕ_z2=#, cfg.ϕ[1], cfg.ϕ[2]),
-                `./bzla 30`
-            ) || break
+        if res
+            for cfg in cfgs2
+                if !check_state_equivalence(
+                    cfg.ρ, ρ02, (ϕ_x2 #=& ϕ_z2=#, cfg.ϕ[1], cfg.ϕ[2]),
+                    `./bzla 30`)
+                    res = false
+                    break
+                end
+            end
         end
     end
 
-    nothing
+    res
 end

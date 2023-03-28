@@ -1,4 +1,4 @@
-using QSE
+using QuantumSE
 using Z3
 
 ctx = Context()
@@ -66,9 +66,9 @@ end
         sX(j, r[j])
     end
 
-    #e = reduce(&, r[1:((n-1)÷2)])
+    e = reduce(&, r[1:((n-1)÷2)])
 
-    #sX(1, e)
+    sX(1, e)
 end
 
 function check_repetition_decoder(n)
@@ -98,7 +98,7 @@ function check_repetition_decoder(n)
         ])
 
         ρ₀ = from_stabilizer(num_qubits, stabilizer, phases, ctx)
-        ρ = QState(ρ₀)
+        ρ = copy(ρ₀)
 
         num_x_errors = (n-1)÷2
         x_errors = inject_errors(ρ, "X")
@@ -115,12 +115,17 @@ function check_repetition_decoder(n)
     @time cfgs = QuantSymEx(cfg0)
 
     @info "SMT Solver Stage"
-    @time for cfg in cfgs
-        check_state_equivalence(
-            cfg.ρ, ρ₀, (ϕ_x #=& ϕ_z=#, cfg.ϕ[1], cfg.ϕ[2]),
-            `./bzla 30`
-        ) || break
+    @time begin
+        res = true
+        for cfg in cfgs
+            if !check_state_equivalence(
+                cfg.ρ, ρ₀, (ϕ_x #=& ϕ_z=#, cfg.ϕ[1], cfg.ϕ[2]),
+                `./bzla 30`)
+                res = false
+                break
+            end
+        end
     end
 
-    nothing
+    res
 end

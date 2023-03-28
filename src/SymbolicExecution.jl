@@ -8,7 +8,7 @@ const SymProbs = Dict{Z3.ExprAllocated,Z3.ExprAllocated}
 mutable struct SymConfig
     S::QProg
     σ::CState
-    const ρ::QState
+    const ρ::AbstractSymQuantumState
     P::SymProbs
     ϕ::Tuple{Z3.ExprAllocated, Z3.ExprAllocated}
 
@@ -16,12 +16,12 @@ mutable struct SymConfig
 
     SymConfig(num_qubits::Integer) = begin
         ctx = Z3.Context()
-        new(QEmpty, CState(), QState(num_qubits, ctx), SymProbs(), (bool_val(ctx, true), bool_val(ρ.ctx, true)), ctx, [])
+        new(QEmpty, CState(), SymStabilizerState(num_qubits, ctx), SymProbs(), (bool_val(ctx, true), bool_val(ρ.ctx, true)), ctx, [])
     end
 
-    SymConfig(S::QProg, σ::CState, ρ::QState, P::SymProbs, ϕ::Tuple{Z3.ExprAllocated, Z3.ExprAllocated}, ctx::Z3.ContextAllocated) = new(copy(S), copy(σ), copy(ρ), copy(P), (ϕ[1], ϕ[2]), ctx)
+    SymConfig(S::QProg, σ::CState, ρ::AbstractSymQuantumState, P::SymProbs, ϕ::Tuple{Z3.ExprAllocated, Z3.ExprAllocated}, ctx::Z3.ContextAllocated) = new(copy(S), copy(σ), copy(ρ), copy(P), (ϕ[1], ϕ[2]), ctx)
 
-    SymConfig(S::QProg, σ::CState, ρ::QState) = SymConfig(S, σ, ρ, SymProbs(), (bool_val(ρ.ctx, true), bool_val(ρ.ctx, true)), ρ.ctx)
+    SymConfig(S::QProg, σ::CState, ρ::AbstractSymQuantumState) = SymConfig(S, σ, ρ, SymProbs(), (bool_val(ρ.ctx, true), bool_val(ρ.ctx, true)), ρ.ctx)
 
     SymConfig(cfg::SymConfig) = SymConfig(cfg.S, cfg.σ, cfg.ρ, cfg.P, (cfg.ϕ[1], cfg.ϕ[2]), cfg.ctx)
 end

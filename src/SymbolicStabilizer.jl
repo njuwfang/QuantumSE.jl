@@ -13,7 +13,7 @@ _len2(j) = Int(ceil(log2(j)))
 
 _sum(ctx, e, num_qubits) = sum( (x -> concat(bv_val(ctx, 0, _len2(num_qubits)), x)).(e) )
 
-struct QState
+struct SymStabilizerState <: AbstractSymQuantumState
     num_qubits::UInt32
 
     xzs::Matrix{UInt64}
@@ -22,7 +22,7 @@ struct QState
 
     ctx::Z3.ContextAllocated
 
-    QState(num_qubits::Integer, Tableau::Matrix{Bool}, phases::Vector{Z3.ExprAllocated}, ctx::Z3.ContextAllocated) = begin
+    SymStabilizerState(num_qubits::Integer, Tableau::Matrix{Bool}, phases::Vector{Z3.ExprAllocated}, ctx::Z3.ContextAllocated) = begin
         @assert size(Tableau) == (2*num_qubits, 2*num_qubits)
         @assert length(phases) == 2*num_qubits
         
@@ -45,41 +45,41 @@ struct QState
         new(num_qubits, xzs, vcat(phases, _bv_val(ctx, 0)), ctx)
     end
 
-    QState(num_qubits::Integer, Tableau::Matrix{Bool}, Phases::Vector{Bool}, ctx::Z3.ContextAllocated) = begin
+    SymStabilizerState(num_qubits::Integer, Tableau::Matrix{Bool}, Phases::Vector{Bool}, ctx::Z3.ContextAllocated) = begin
         phases = Vector{Z3.ExprAllocated}(undef, 2*num_qubits)
         for j in 1:2*num_qubits
             phases[j] = _bv_val(ctx, 1*Phases[j])
         end
 
-        QState(num_qubits, Tableau, phases, ctx)
+        SymStabilizerState(num_qubits, Tableau, phases, ctx)
     end
 
-    QState(num_qubits::Integer, ctx::Z3.ContextAllocated) = begin
+    SymStabilizerState(num_qubits::Integer, ctx::Z3.ContextAllocated) = begin
         Tableau = Matrix{Bool}(I, 2*num_qubits, 2*num_qubits)
         Phases = zeros(Bool, 2*num_qubits)
         
-        QState(num_qubits, Tableau, Phases, ctx)
+        SymStabilizerState(num_qubits, Tableau, Phases, ctx)
     end
 
-    QState(q::QState) = begin
+    SymStabilizerState(q::SymStabilizerState) = begin
         new(q.num_qubits, copy(q.xzs), copy(q.phases), q.ctx)
     end
 
-    QState(num_qubits::Integer, ctx::Z3.ContextAllocated) = begin
+    SymStabilizerState(num_qubits::Integer, ctx::Z3.ContextAllocated) = begin
         Tableau = I + Zeros(Bool, 2*num_qubits, 2*num_qubits)
         phases = [_bv_val(ctx, 0) for j in 1:2*num_qubits]
-        QState(num_qubits, Tableau, phases, ctx)
+        SymStabilizerState(num_qubits, Tableau, phases, ctx)
     end
 end
 
-Base.copy(q::QState) = QState(q)
+Base.copy(q::SymStabilizerState) = SymStabilizerState(q)
 
-function update!(q::QState, q0::QState)
+function update!(q::SymStabilizerState, q0::SymStabilizerState)
     q.xzs[:] = q0.xzs
     q.phases[:] = q0.phases
 end
 
-@inline function rowset!(q::QState, i, b)
+@inline function rowset!(q::SymStabilizerState, i, b)
     len = size(q.xzs, 1)÷2
 
     @inbounds @simd for j in 1:size(q.xzs, 1)
@@ -96,7 +96,7 @@ end
     nothing
 end
 
-@inline function rowcopy!(q::QState, i, j)
+@inline function rowcopy!(q::SymStabilizerState, i, j)
     (i == j) && return
     q.phases[i] = q.phases[j]
     @inbounds @simd for k in 1:size(q.xzs,1)
@@ -106,7 +106,7 @@ end
     nothing
 end
 
-@inline function rowswap!(q::QState, i, j)
+@inline function rowswap!(q::SymStabilizerState, i, j)
     (i == j) && return
     q.phases[i], q.phases[j] = q.phases[j], q.phases[i]
     @inbounds @simd for k in 1:size(q.xzs,1)
@@ -116,7 +116,7 @@ end
     nothing
 end
 
-function rowmult!(q::QState, i, j)
+function rowmult!(q::SymStabilizerState, i, j)
     len = size(q.xzs, 1)÷2
     r = q.xzs[:,i]
     l = q.xzs[:,j]
@@ -141,7 +141,7 @@ function rowmult!(q::QState, i, j)
     nothing
 end
 
-function _canonicalize_gott!(q::QState)
+function _canonicalize_gott!(q::SymStabilizerState)
     len = size(q.xzs, 1)÷2
     rest_j = UInt32[]
     perms = Tuple{UInt32,UInt32}[]
@@ -209,7 +209,7 @@ function from_stabilizer(num_qubits::Integer, Stabilizer::Matrix{Bool}, phases1:
     end
     phases = vcat(phases0, phases1)
         
-    result = QState(num_qubits, Tableau, phases, ctx)
+    result = SymStabilizerState(num_qubits, Tableau, phases, ctx)
 
     _canonicalize_gott!(result)
 
@@ -267,7 +267,7 @@ function from_css_code(HX, HZ, ctx::Z3.ContextAllocated)
     ρ1, ρ2, dx, dz
 end
 
-function print_full_tableau(q::QState)
+function print_full_tableau(q::SymStabilizerState)
     len = size(q.xzs, 1)÷2
     
     for i in 1:2*q.num_qubits
@@ -289,7 +289,7 @@ function print_full_tableau(q::QState)
     nothing
 end
 
-function CNOT!(q::QState, b, c)
+function CNOT!(q::SymStabilizerState, b, c)
     len = size(q.xzs, 1)÷2
     b6 = _mod(b)
     c6 = _mod(c)
@@ -312,7 +312,7 @@ function CNOT!(q::QState, b, c)
     nothing
 end
 
-function H!(q::QState, b)
+function H!(q::SymStabilizerState, b)
     len = size(q.xzs, 1)÷2
     b6 = _mod(b)
     pw = _rem(b)
@@ -329,7 +329,7 @@ function H!(q::QState, b)
     nothing
 end
 
-function S!(q::QState, b)
+function S!(q::SymStabilizerState, b)
     len = size(q.xzs, 1)÷2
     b6 = _mod(b)
     pw = _rem(b)
@@ -345,7 +345,7 @@ function S!(q::QState, b)
     nothing
 end
 
-function X!(q::QState, b)
+function X!(q::SymStabilizerState, b)
     len = size(q.xzs, 1)÷2
     b6 = _mod(b)
     pw = _rem(b)
@@ -360,7 +360,7 @@ function X!(q::QState, b)
     nothing
 end
 
-function Z!(q::QState, b)
+function Z!(q::SymStabilizerState, b)
     len = size(q.xzs, 1)÷2
     b6 = _mod(b)
     pw = _rem(b)
@@ -375,7 +375,7 @@ function Z!(q::QState, b)
     nothing
 end
 
-function Y!(q::QState, b)
+function Y!(q::SymStabilizerState, b)
     len = size(q.xzs, 1)÷2
     b6 = _mod(b)
     pw = _rem(b)
@@ -390,7 +390,7 @@ function Y!(q::QState, b)
     nothing
 end
 
-function sX!(q::QState, b, s)
+function sX!(q::SymStabilizerState, b, s)
     len = size(q.xzs, 1)÷2
     b6 = _mod(b)
     pw = _rem(b)
@@ -405,7 +405,7 @@ function sX!(q::QState, b, s)
     nothing
 end
 
-function sZ!(q::QState, b, s)
+function sZ!(q::SymStabilizerState, b, s)
     len = size(q.xzs, 1)÷2
     b6 = _mod(b)
     pw = _rem(b)
@@ -420,7 +420,7 @@ function sZ!(q::QState, b, s)
     nothing
 end
 
-function sY!(q::QState, b, s)
+function sY!(q::SymStabilizerState, b, s)
     len = size(q.xzs, 1)÷2
     b6 = _mod(b)
     pw = _rem(b)
@@ -435,7 +435,7 @@ function sY!(q::QState, b, s)
     nothing
 end
 
-function M!(q::QState, b, sym_name::String)
+function M!(q::SymStabilizerState, b, sym_name::String)
     b6 = _mod(b)
     pw = _rem(b)
     p = findfirst(ii-> q.xzs[b6,ii+q.num_qubits]&pw != 0, 1:q.num_qubits)
@@ -470,7 +470,7 @@ end
 
 CNOT, H, S, X, Y, Z, sX, sY, sZ, M = CNOT!, H!, S!, X!, Y!, Z!, sX!, sY!, sZ!, M!
 
-function inject_errors(q::QState, max_num_errors::Integer, error_type::String)
+function inject_errors(q::SymStabilizerState, max_num_errors::Integer, error_type::String)
     terms = Vector{Z3.ExprAllocated}(undef, q.num_qubits)
     sGate = error_type == "X" ? sX : sZ
     for j in 1:q.num_qubits
@@ -482,7 +482,7 @@ function inject_errors(q::QState, max_num_errors::Integer, error_type::String)
     nothing
 end
 
-function inject_errors(q::QState, error_type::String)
+function inject_errors(q::SymStabilizerState, error_type::String)
     terms = Vector{Z3.ExprAllocated}(undef, q.num_qubits)
     sGate = error_type == "X" ? sX : sZ
     errors = [_bv_const(q.ctx, "$(error_type)_error_$(j)") for j in 1:q.num_qubits]
@@ -503,7 +503,7 @@ end
     e
 end
 
-function check_state_equivalence(q1::QState, q2::QState, assumptions::Tuple{Z3.ExprAllocated, Z3.ExprAllocated, Z3.ExprAllocated}, slv_backend_cmd::Cmd=`bitwuzla -e 0 -SE kissat`)
+function check_state_equivalence(q1::SymStabilizerState, q2::SymStabilizerState, assumptions::Tuple{Z3.ExprAllocated, Z3.ExprAllocated, Z3.ExprAllocated}, slv_backend_cmd::Cmd=`bitwuzla -e 0 -SE kissat`)
     if q1.num_qubits != q2.num_qubits
         @info "The number of qubits does not match"
         return false

@@ -1,4 +1,4 @@
-using QSE
+using QuantumSE
 using Z3
 using SparseArrays
 using LinearAlgebra: nullspace
@@ -133,7 +133,7 @@ end
     end
 end
 
-function check_tanner_decoder(m)
+function check_tanner_decoder(m,k)
     #=
     p = 13
     q = 5
@@ -151,9 +151,9 @@ function check_tanner_decoder(m)
     @info "Initailization Stage"
     @time begin
 
-        G = [PrimeG(7^m, j-1) for j in 1:7^m]
-        A = [PrimeG(7^m, (j-1)*7^(m-1)) for j in 1:7]
-        B = [PrimeG(7^m, (j-1)*7^(m-1)) for j in 1:7]
+        G = [PrimeG(7^m*2^k, j-1) for j in 1:7^m*2^k]
+        A = [PrimeG(7^m*2^k, (j-1)*7^(m-1)*2^k) for j in 1:7]
+        B = [PrimeG(7^m*2^k, (j-1)*7^(m-1)*2^k) for j in 1:7]
 
         HA = Hamming743
         HAt = Hamming733
@@ -165,6 +165,8 @@ function check_tanner_decoder(m)
         n, nx = size(HXt)
         nz = size(HZt,2)
 
+        @show nx, nz
+
         X_idxs = [findall(!iszero, HXt[:,j]) for j in 1:nx]
         Z_idxs = [findall(!iszero, HZt[:,j]) for j in 1:nz]
 
@@ -174,8 +176,8 @@ function check_tanner_decoder(m)
         ρ01, ρ02, dx, dz = from_css_code(Matrix{GF2}(transpose(HXt)), Matrix{GF2}(transpose(HZt)), ctx)
         d = 5 #min(dx, dz)
 
-        ρ1 = QState(ρ01)
-        ρ2 = QState(ρ02)
+        ρ1 = copy(ρ01)
+        ρ2 = copy(ρ02)
 
         σ = CState([
             (:d, d),
