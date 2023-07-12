@@ -5,7 +5,7 @@ abstract type AbstractSymQuantumState end
 include("QuantumProgram.jl")
 export @qprog, QProg, QEmpty
 
-include("CSSCode.jl")
+include("GF2.jl")
 export GF2
 
 include("SymbolicStabilizer.jl")

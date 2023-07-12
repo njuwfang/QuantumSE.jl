@@ -71,7 +71,7 @@ function TannerCode(G::Vector{<:AbstractGroup}, A::Vector{<:AbstractGroup}, B::V
     HXt, HZt
 end
 
-function ccs_check(d, s, s_type, nq, adj)
+function css_check(d, s, s_type, nq, adj)
 
     ## pre-condition
     ϕ₁ = bool_val(ctx, true)
@@ -124,13 +124,17 @@ end
     s_x = [tanner_x_m(j) for j in 1:nx]
     s_z = [tanner_z_m(j) for j in 1:nz]
 
-    r_x = ccs_check(d, s_x, "X", nq, _xadj)
-    r_z = ccs_check(d, s_z, "Z", nq, _zadj)
+    r_x = css_check(d, s_x, "X", nq, _xadj)
+    r_z = css_check(d, s_z, "Z", nq, _zadj)
 
     for j in 1:nq
         sZ(j, r_x[j])
         sX(j, r_z[j])
     end
+
+    e = reduce(&, r_z[1:((d-1)÷2)])
+
+    sX(1, e)
 end
 
 function check_tanner_decoder(m,k)
@@ -174,7 +178,7 @@ function check_tanner_decoder(m,k)
         _zadj(i) = Z_idxs[i]
 
         ρ01, ρ02, dx, dz = from_css_code(Matrix{GF2}(transpose(HXt)), Matrix{GF2}(transpose(HZt)), ctx)
-        d = 5 #min(dx, dz)
+        d = min(dx, dz)
 
         ρ1 = copy(ρ01)
         ρ2 = copy(ρ02)
@@ -187,15 +191,23 @@ function check_tanner_decoder(m,k)
             (:_xadj, _xadj),
             (:_zadj, _zadj),
             (:ctx, ctx),
-            (:ccs_check, ccs_check)
+            (:css_check, css_check)
         ])
 
         num_x_errors = (d-1)÷2
         x_errors = inject_errors(ρ1, "X")
         ϕ_x1 = _sum(ctx, x_errors, n) == bv_val(ctx, num_x_errors, _len2(n)+1)
-
+        
+        num_z_errors = (d-1)÷2
+        z_errors = inject_errors(ρ1, "Z")
+        ϕ_z1 = _sum(ctx, z_errors, n) == bv_val(ctx, num_z_errors, _len2(n)+1)
+        
         x_errors = inject_errors(ρ2, "X")
         ϕ_x2 = _sum(ctx, x_errors, n) == bv_val(ctx, num_x_errors, _len2(n)+1)
+
+        num_z_errors = (d-1)÷2
+        z_errors = inject_errors(ρ2, "Z")
+        ϕ_z2 = _sum(ctx, z_errors, n) == bv_val(ctx, num_z_errors, _len2(n)+1)
 
         cfg1 = SymConfig(tanner_decoder(nx,nz,n,d), σ, ρ1)
         cfg2 = SymConfig(tanner_decoder(nx,nz,n,d), σ, ρ2)
@@ -212,7 +224,7 @@ function check_tanner_decoder(m,k)
         res = true
         for cfg in cfgs1
             if !check_state_equivalence(
-                cfg.ρ, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg.ϕ[1], cfg.ϕ[2]),
+                cfg.ρ, ρ01, (ϕ_x1 & ϕ_z1, cfg.ϕ[1], cfg.ϕ[2]),
                 `./bzla 30`)
                 res = false
                 break
@@ -222,7 +234,7 @@ function check_tanner_decoder(m,k)
         if res
             for cfg in cfgs2
                 if !check_state_equivalence(
-                    cfg.ρ, ρ02, (ϕ_x2 #=& ϕ_z2=#, cfg.ϕ[1], cfg.ϕ[2]),
+                    cfg.ρ, ρ02, (ϕ_x2 & ϕ_z2, cfg.ϕ[1], cfg.ϕ[2]),
                     `./bzla 30`)
                     res = false
                     break
