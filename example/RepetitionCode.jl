@@ -120,7 +120,7 @@ function check_repetition_decoder(n)
         for cfg in cfgs
             if !check_state_equivalence(
                 cfg.ρ, ρ₀, (ϕ_x #=& ϕ_z=#, cfg.ϕ[1], cfg.ϕ[2]),
-                `./bzla 30`)
+                `bitwuzla --smt-comp-mode true -rwl 0 -S kissat`)
                 res = false
                 break
             end

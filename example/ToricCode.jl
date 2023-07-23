@@ -220,7 +220,10 @@ function check_toric_decoder(d::Integer)
         for cfg in cfgs1
             if !check_state_equivalence(
                 cfg.ρ, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg.ϕ[1], cfg.ϕ[2]),
-                `./bzla 30`)
+                `bitwuzla --smt-comp-mode true -rwl 0 -S kissat`
+                #`bitwuzla --smt-comp-mode true -S kissat`
+                #`bitwuzla --smt-comp-mode true -rwl 0`
+               )
                 res = false
                 break
             end
@@ -230,7 +233,10 @@ function check_toric_decoder(d::Integer)
             for cfg in cfgs2
                 if !check_state_equivalence(
                     cfg.ρ, ρ02, (ϕ_x2 #=& ϕ_z2=#, cfg.ϕ[1], cfg.ϕ[2]),
-                    `./bzla 30`)
+                    `bitwuzla --smt-comp-mode true -rwl 0 -S kissat`
+                    #`bitwuzla --smt-comp-mode true -S kissat`
+                    #`bitwuzla --smt-comp-mode true -rwl 0`
+                   )
                     res = false
                     break
                 end

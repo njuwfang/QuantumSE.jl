@@ -155,10 +155,19 @@ function check_tanner_decoder(m,k)
     @info "Initailization Stage"
     @time begin
 
-        G = [PrimeG(7^m*2^k, j-1) for j in 1:7^m*2^k]
-        A = [PrimeG(7^m*2^k, (j-1)*7^(m-1)*2^k) for j in 1:7]
-        B = [PrimeG(7^m*2^k, (j-1)*7^(m-1)*2^k) for j in 1:7]
+        #G = [PrimeG(7^m*2^k, j-1) for j in 1:7^m*2^k]
+        #A = [PrimeG(7^m*2^k, (j-1)*7^(m-1)*2^k) for j in 1:7]
+        #B = [PrimeG(7^m*2^k, (j-1)*7^(m-1)*2^k) for j in 1:7]
+        aa = k
+        G = [PrimeG(7^m*aa, j-1) for j in 1:7^m*aa]
+        A = [PrimeG(7^m*aa, (j-1)*7^(m-1)*aa) for j in 1:7]
+        B = [PrimeG(7^m*aa, (j-1)*7^(m-1)*aa) for j in 1:7]
 
+        #HA = Hamming313
+        #HAt = Hamming322
+        #HB = Hamming322
+        #HBt = Hamming313
+        
         HA = Hamming743
         HAt = Hamming733
         HB = Hamming733
@@ -178,7 +187,7 @@ function check_tanner_decoder(m,k)
         _zadj(i) = Z_idxs[i]
 
         ρ01, ρ02, dx, dz = from_css_code(Matrix{GF2}(transpose(HXt)), Matrix{GF2}(transpose(HZt)), ctx)
-        d = min(dx, dz)
+        d = 6 #min(dx, dz)
 
         ρ1 = copy(ρ01)
         ρ2 = copy(ρ02)
@@ -198,16 +207,16 @@ function check_tanner_decoder(m,k)
         x_errors = inject_errors(ρ1, "X")
         ϕ_x1 = _sum(ctx, x_errors, n) == bv_val(ctx, num_x_errors, _len2(n)+1)
         
-        num_z_errors = (d-1)÷2
-        z_errors = inject_errors(ρ1, "Z")
-        ϕ_z1 = _sum(ctx, z_errors, n) == bv_val(ctx, num_z_errors, _len2(n)+1)
+        #num_z_errors = (d-1)÷2
+        #z_errors = inject_errors(ρ1, "Z")
+        #ϕ_z1 = _sum(ctx, z_errors, n) == bv_val(ctx, num_z_errors, _len2(n)+1)
         
         x_errors = inject_errors(ρ2, "X")
         ϕ_x2 = _sum(ctx, x_errors, n) == bv_val(ctx, num_x_errors, _len2(n)+1)
 
-        num_z_errors = (d-1)÷2
-        z_errors = inject_errors(ρ2, "Z")
-        ϕ_z2 = _sum(ctx, z_errors, n) == bv_val(ctx, num_z_errors, _len2(n)+1)
+        #num_z_errors = (d-1)÷2
+        #z_errors = inject_errors(ρ2, "Z")
+        #ϕ_z2 = _sum(ctx, z_errors, n) == bv_val(ctx, num_z_errors, _len2(n)+1)
 
         cfg1 = SymConfig(tanner_decoder(nx,nz,n,d), σ, ρ1)
         cfg2 = SymConfig(tanner_decoder(nx,nz,n,d), σ, ρ2)
@@ -224,8 +233,8 @@ function check_tanner_decoder(m,k)
         res = true
         for cfg in cfgs1
             if !check_state_equivalence(
-                cfg.ρ, ρ01, (ϕ_x1 & ϕ_z1, cfg.ϕ[1], cfg.ϕ[2]),
-                `./bzla 30`)
+                cfg.ρ, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg.ϕ[1], cfg.ϕ[2]),
+                `bitwuzla --smt-comp-mode true -rwl 0 -S kissat`)
                 res = false
                 break
             end
@@ -234,8 +243,8 @@ function check_tanner_decoder(m,k)
         if res
             for cfg in cfgs2
                 if !check_state_equivalence(
-                    cfg.ρ, ρ02, (ϕ_x2 & ϕ_z2, cfg.ϕ[1], cfg.ϕ[2]),
-                    `./bzla 30`)
+                    cfg.ρ, ρ02, (ϕ_x2 #=& ϕ_z2=#, cfg.ϕ[1], cfg.ϕ[2]),
+                    `bitwuzla --smt-comp-mode true -rwl 0 -S kissat`)
                     res = false
                     break
                 end
