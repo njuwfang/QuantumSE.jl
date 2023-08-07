@@ -1,3 +1,6 @@
+using Pkg
+Pkg.activate("../")
+
 using QuantumSE
 using Z3
 
@@ -147,8 +150,9 @@ end
 
 function check_toric_decoder(d::Integer)
 
-    @info "Initailization Stage"
-    @time begin
+    #@info "Initailization Stage"
+    t0 = time()
+    begin
         num_qubits = d*d*2
 
 	    stabilizer = Matrix{Bool}(undef, num_qubits, 2*num_qubits)
@@ -208,14 +212,16 @@ function check_toric_decoder(d::Integer)
         cfg2 = SymConfig(toric_decoder(d), σ, ρ2)
     end
 
-    @info "Symbolic Execution Stage"
-    @time begin
+    #@info "Symbolic Execution Stage"
+    t1 = time()
+    begin
         cfgs1 = QuantSymEx(cfg1)
         cfgs2 = QuantSymEx(cfg2)
     end
 
-    @info "SMT Solver Stage"
-    @time begin
+    #@info "SMT Solver Stage"
+    t2 = time()
+    begin
         res = true
         for cfg in cfgs1
             if !check_state_equivalence(
@@ -244,5 +250,19 @@ function check_toric_decoder(d::Integer)
         end
     end
 
-    res
+    t3 = time()
+
+    res, t3-t0, t1-t0, t2-t1, t3-t2
+end
+
+check_toric_decoder(3)
+
+open("toric_code.dat", "w") do io
+  println(io, "nq all init qse smt")
+  println("nq all init qse smt")
+  for d in 4:27
+    res, all, init, qse, smt = check_toric_decoder(d)
+    println(io, "$(d*d*2) $(all) $(init) $(qse) $(smt)")
+    println("$(d)/27: $(d*d*2) $(all) $(init) $(qse) $(smt)")
+  end
 end

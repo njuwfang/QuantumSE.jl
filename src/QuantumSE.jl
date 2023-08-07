@@ -19,4 +19,7 @@ export CState, SymConfig, QuantSymEx, CEval
 include("LinearGroup.jl")
 export AbstractGroup, AbstraLinearGroup, L2, PL2, pgl2, psl2, jacobi4squares
 
+include("Sampler.jl")
+export Sampler, parse_stim
+
 end # module QSE

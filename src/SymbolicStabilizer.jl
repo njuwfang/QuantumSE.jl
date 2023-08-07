@@ -54,19 +54,19 @@ struct SymStabilizerState <: AbstractSymQuantumState
         SymStabilizerState(num_qubits, Tableau, phases, ctx)
     end
 
-    SymStabilizerState(num_qubits::Integer, ctx::Z3.ContextAllocated) = begin
+    #=SymStabilizerState(num_qubits::Integer, ctx::Z3.ContextAllocated) = begin
         Tableau = Matrix{Bool}(I, 2*num_qubits, 2*num_qubits)
         Phases = zeros(Bool, 2*num_qubits)
         
         SymStabilizerState(num_qubits, Tableau, Phases, ctx)
-    end
+    end=#
 
     SymStabilizerState(q::SymStabilizerState) = begin
         new(q.num_qubits, copy(q.xzs), copy(q.phases), q.ctx)
     end
 
     SymStabilizerState(num_qubits::Integer, ctx::Z3.ContextAllocated) = begin
-        Tableau = I + Zeros(Bool, 2*num_qubits, 2*num_qubits)
+        Tableau = Matrix{Bool}(I, 2*num_qubits, 2*num_qubits)
         phases = [_bv_val(ctx, 0) for j in 1:2*num_qubits]
         SymStabilizerState(num_qubits, Tableau, phases, ctx)
     end
@@ -453,7 +453,7 @@ function M!(q::SymStabilizerState, b, sym_name::String)
             end
         end
         
-        return res * 2
+        return res
     else
         m = findfirst(ii-> q.xzs[b6,ii]&pw != 0, 1:q.num_qubits)
         rowcopy!(q, 2*q.num_qubits+1, m+q.num_qubits)
