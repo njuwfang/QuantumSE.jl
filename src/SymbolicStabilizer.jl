@@ -297,14 +297,14 @@ function CNOT!(q::SymStabilizerState, b, c)
     pwc = _rem(c)
 
     @inbounds @simd for j in 1:2*q.num_qubits
-        x1, z1, x2, z2 = q.xzs[b6,j]&pwb, q.xzs[b6+len,j]&pwb, q.xzs[c6,j]&pwc, q.xzs[c6+len,j]&pwc
-        if ~iszero(x1)
+        x1, z1, x2, z2 = q.xzs[b6,j]&pwb!=0, q.xzs[b6+len,j]&pwb!=0, q.xzs[c6,j]&pwc!=0, q.xzs[c6+len,j]&pwc!=0
+        if x1
             q.xzs[c6,j] ⊻= pwc
         end
-        if ~iszero(z2)
+        if z2
             q.xzs[b6+len,j] ⊻= pwb
         end
-        if ~iszero( (x1 & z1 & x2 & z2)  | (x1 & z2 &~(z1|x2)) )
+        if (x1 && z1 && x2 && z2)  || (x1 && z2 && ~(z1||x2))
             q.phases[j] = q.phases[j] ⊻ _bv_val(q.ctx, 1)
         end
     end
