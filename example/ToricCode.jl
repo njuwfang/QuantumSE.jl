@@ -1,6 +1,3 @@
-using Pkg
-Pkg.activate("../")
-
 using QuantumSE
 using Z3
 
@@ -254,8 +251,6 @@ function check_toric_decoder(d::Integer)
 
     res, t3-t0, t1-t0, t2-t1, t3-t2
 end
-
-check_toric_decoder(3)
 
 open("toric_code.dat", "w") do io
   println(io, "nq all init qse smt")

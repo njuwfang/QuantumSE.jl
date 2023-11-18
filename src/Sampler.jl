@@ -3,21 +3,20 @@ using SparseArrays
 using Random: bitrand, rand!
 using Z3
 
-function bits_mul_s_uint8s!(C, A, B)
+function bits_mul_s_uint8s!(C::Matrix{UInt64}, A::Matrix{UInt64}, B::AbstractSparseMatrix{UInt8, Int})
     rv = rowvals(B)
-    nzv = nonzeros(B)
     M, N = size(C)
-    K = size(A,2)
-    Cn = Vector{UInt8}(undef, M)
-    for n ∈ 1:N
-        @tturbo warn_check_args=false for m ∈ 1:M
-            Cmn = zero(UInt8)
-            for k ∈ nzrange(B, n)
-                Cmn += A[m, rv[k]] * nzv[k]
-            end
-            Cn[m] = Cmn&1
+    @inbounds for n ∈ 1:N
+        temp = zero(UInt64)
+        @turbo for m in 1:M
+            C[m, n] = temp
         end
-        C[:,n] = Cn
+        for k in nzrange(B, n)
+            rvk = rv[k]
+            @turbo for m in 1:M
+                C[m, n] ⊻= A[m, rvk]
+            end
+        end
     end
 end
 
@@ -62,21 +61,19 @@ function Sampler(bv_expressions, p)
     VH = ones(UInt8, nn)
     VH[nn-ns+1:nn] = b
 
+    ### n_errors = 0
     H = sparse(IH, JH, VH, n_errors+n_measures+1, ns)
 
     sampler = shots -> begin
-        xz = BitArray{2}(undef, shots, n_errors+n_measures+1)
-        xz[:,1:n_errors] = biased_bitrand(shots, n_errors, p)
-        xz[:,n_errors+1:n_errors+n_measures] = bitrand(shots, n_measures)
-        #xz = biased_bitrand(shots, n_errors+n_measures+1, p)
-        @inbounds for j in 1:shots
-            xz[j,n_errors+n_measures+1] = true
+        xz = rand(UInt64, (shots-1)>>6+1, n_measures+1)
+        @inbounds @simd for j in axes(xz, 1)
+            xz[j,n_measures+1] = typemax(UInt64)
         end
-        samples = BitArray{2}(undef, shots, ns)
+        samples = Matrix{UInt64}(undef, (shots-1)>>6+1, ns)
         bits_mul_s_uint8s!(samples, xz, H)
         samples
     end
-    sampler(1)
+    precompile(sampler, (Int,))
 
     sampler
 end
@@ -118,7 +115,9 @@ function parse_stim(stim_file_name::String, ctx)
     qs = SymStabilizerState(num_qubits, ctx)
     m_expressions = Vector{Z3.ExprAllocated}(undef, num_measures)
     j = j
-    for cmd in cmds
+
+    for k in 1:n_cmds
+        cmd = cmds[k]
         if cmd[2] == "H"
             for b in cmd[3]
                 H(qs, b)

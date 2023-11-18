@@ -503,7 +503,7 @@ end
     e
 end
 
-function check_state_equivalence(q1::SymStabilizerState, q2::SymStabilizerState, assumptions::Tuple{Z3.ExprAllocated, Z3.ExprAllocated, Z3.ExprAllocated}, slv_backend_cmd::Cmd=`bitwuzla -e 0 -SE kissat`)
+function check_state_equivalence(q1::SymStabilizerState, q2::SymStabilizerState, assumptions::Tuple{Z3.ExprAllocated, Z3.ExprAllocated, Z3.ExprAllocated}, slv_backend_cmd::Cmd=`bitwuzla -e 0 -SE kissat`;use_z3=false)
     if q1.num_qubits != q2.num_qubits
         @info "The number of qubits does not match"
         return false
@@ -524,26 +524,34 @@ function check_state_equivalence(q1::SymStabilizerState, q2::SymStabilizerState,
     add(slv, assumptions[1])
     add(slv, not(assumptions[2]))
 
-    smt2_file_name = "_temp_check_preconditons_"
-
-    open(smt2_file_name*".smt2", "w") do io
-		println(io, "(set-logic QF_BV)")
-        println(io, "(set-option :produce-models true)")
-		println(io, slv)
-		println(io, "(check-sat)")
-		println(io, "(get-model)")
-		println(io, "(exit)")
-	end
-
-    res_string = read(pipeline(`$(slv_backend_cmd) $(smt2_file_name*".smt2")`), String)
-
-    if ~occursin("unsat", res_string)
-        @info "The preconditions of external programs are not satisfied"
-        open(smt2_file_name*".output", "w") do io
-            println(io, res_string)
+    if use_z3
+        res = check(slv)
+        if res == Z3.sat
+            return false
         end
-        @info "The assignment that generates the bug has been written to ./$(smt2_file_name).output"
-        return false
+    else
+
+        smt2_file_name = "_temp_check_preconditons_"
+
+        open(smt2_file_name*".smt2", "w") do io
+	    	println(io, "(set-logic QF_BV)")
+            println(io, "(set-option :produce-models true)")
+	    	println(io, slv)
+	    	println(io, "(check-sat)")
+	    	println(io, "(get-model)")
+	    	println(io, "(exit)")
+	    end
+
+        res_string = read(pipeline(`$(slv_backend_cmd) $(smt2_file_name*".smt2")`), String)
+
+        if ~occursin("unsat", res_string)
+            @info "The preconditions of external programs are not satisfied"
+            open(smt2_file_name*".output", "w") do io
+                println(io, res_string)
+            end
+            @info "The assignment that generates the bug has been written to ./$(smt2_file_name).output"
+            return false
+        end
     end
 
     Z3.reset(slv)
@@ -554,26 +562,33 @@ function check_state_equivalence(q1::SymStabilizerState, q2::SymStabilizerState,
 
     add(slv, conjecture)
 
-    smt2_file_name = "_temp_check_equivalence_"
-
-    open(smt2_file_name*".smt2", "w") do io
-		println(io, "(set-logic QF_BV)")
-        println(io, "(set-option :produce-models true)")
-		println(io, slv)
-		println(io, "(check-sat)")
-		println(io, "(get-model)")
-		println(io, "(exit)")
-	end
-
-    res_string = read(pipeline(`$(slv_backend_cmd) $(smt2_file_name*".smt2")`), String)
-
-    if ~occursin("unsat", res_string)
-        @info "There exist some allowed errors that the program cannot correct"
-        open(smt2_file_name*".output", "w") do io
-            println(io, res_string)
+    if use_z3
+        res = check(slv)
+        if res == Z3.sat
+            return false
         end
-        @info "The assignment that generated the bug has been written to ./$(smt2_file_name).output"
-        return false
+    else
+        smt2_file_name = "_temp_check_equivalence_"
+
+        open(smt2_file_name*".smt2", "w") do io
+	    	println(io, "(set-logic QF_BV)")
+            println(io, "(set-option :produce-models true)")
+	    	println(io, slv)
+	    	println(io, "(check-sat)")
+	    	println(io, "(get-model)")
+	    	println(io, "(exit)")
+	    end
+
+        res_string = read(pipeline(`$(slv_backend_cmd) $(smt2_file_name*".smt2")`), String)
+
+        if ~occursin("unsat", res_string)
+            @info "There exist some allowed errors that the program cannot correct"
+            open(smt2_file_name*".output", "w") do io
+                println(io, res_string)
+            end
+            @info "The assignment that generated the bug has been written to ./$(smt2_file_name).output"
+            return false
+        end
     end
 
     return true

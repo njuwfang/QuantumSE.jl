@@ -153,6 +153,7 @@ function check_tanner_decoder(m,k)
     HBt = [Hamming743 Hamming743]
     =#
     @info "Initailization Stage"
+    t0 = time()
     @time begin
 
         #G = [PrimeG(7^m*2^k, j-1) for j in 1:7^m*2^k]
@@ -223,18 +224,20 @@ function check_tanner_decoder(m,k)
     end
 
     @info "Symbolic Execution Stage"
+    t1 = time()
     @time begin
         cfgs1 = QuantSymEx(cfg1)
         cfgs2 = QuantSymEx(cfg2)
     end
 
     @info "SMT Solver Stage"
+    t2 = time()
     @time begin
         res = true
         for cfg in cfgs1
             if !check_state_equivalence(
                 cfg.ρ, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg.ϕ[1], cfg.ϕ[2]),
-                `bitwuzla --smt-comp-mode true -rwl 0 -S kissat`)
+                `bitwuzla --smt-comp-mode true -m true -rwl 0 -S kissat`)
                 res = false
                 break
             end
@@ -244,7 +247,7 @@ function check_tanner_decoder(m,k)
             for cfg in cfgs2
                 if !check_state_equivalence(
                     cfg.ρ, ρ02, (ϕ_x2 #=& ϕ_z2=#, cfg.ϕ[1], cfg.ϕ[2]),
-                    `bitwuzla --smt-comp-mode true -rwl 0 -S kissat`)
+                    `bitwuzla --smt-comp-mode true -m true -rwl 0 -S kissat`)
                     res = false
                     break
                 end
@@ -252,5 +255,17 @@ function check_tanner_decoder(m,k)
         end
     end
 
-    res
+    t3 = time()
+
+    res, t3-t0, t1-t0, t2-t1, t3-t2
+end
+
+open("tanner_code.dat", "w") do io
+  println(io, "nq all init qse smt")
+  println("nq all init qse smt")
+  for k in 1:4
+    res, all, init, qse, smt = check_tanner_decoder(1,k)
+    println(io, "$(343*k) $(all) $(init) $(qse) $(smt)")
+    println("$(k)/4: $(343*k) $(all) $(init) $(qse) $(smt)")
+  end
 end

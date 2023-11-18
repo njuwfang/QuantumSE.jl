@@ -73,6 +73,7 @@ end
 
 function check_repetition_decoder(n)
     @info "Initailization Stage"
+    t0 = time()
     @time begin
         num_qubits = n
 
@@ -112,9 +113,11 @@ function check_repetition_decoder(n)
     end
 
     @info "Symbolic Execution Stage"
+    t1 = time()
     @time cfgs = QuantSymEx(cfg0)
 
     @info "SMT Solver Stage"
+    t2 = time()
     @time begin
         res = true
         for cfg in cfgs
@@ -127,5 +130,17 @@ function check_repetition_decoder(n)
         end
     end
 
-    res
+    t3 = time()
+
+    res, t3-t0, t1-t0, t2-t1, t3-t2
+end
+
+open("repetition_code.dat", "w") do io
+  println(io, "nq all init qse smt")
+  println("nq all init qse smt")
+  for j in 1:28
+    res, all, init, qse, smt = check_repetition_decoder(50*j)
+    println(io, "$(50*j) $(all) $(init) $(qse) $(smt)")
+    println("$(j)/28: $(50*j) $(all) $(init) $(qse) $(smt)")
+  end
 end

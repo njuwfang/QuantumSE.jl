@@ -1,0 +1,3 @@
+[submodule "example/bitwuzla-for-QuantumSE"]
+	path = example/bitwuzla-for-QuantumSE
+	url = https://github.com/njuwfang/bitwuzla-for-QuantumSE.git
