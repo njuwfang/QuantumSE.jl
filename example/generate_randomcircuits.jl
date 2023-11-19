@@ -1,3 +1,4 @@
+ENV["JULIA_PKG_USING_AUTOINSTALL"] = "yes"
 using StatsBase: sample
 
 mkpath("./stim_benchmark/")
