@@ -135,6 +135,8 @@ function check_repetition_decoder(n)
     res, t3-t0, t1-t0, t2-t1, t3-t2
 end
 
+check_repetition_decoder(20) # precompile time
+
 open("repetition_code.dat", "w") do io
   println(io, "nq all init qse smt")
   println("nq all init qse smt")

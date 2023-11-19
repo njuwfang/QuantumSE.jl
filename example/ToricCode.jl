@@ -147,7 +147,7 @@ end
 
 function check_toric_decoder(d::Integer)
 
-    #@info "Initailization Stage"
+    @info "Initailization Stage"
     t0 = time()
     begin
         num_qubits = d*d*2
@@ -209,14 +209,14 @@ function check_toric_decoder(d::Integer)
         cfg2 = SymConfig(toric_decoder(d), σ, ρ2)
     end
 
-    #@info "Symbolic Execution Stage"
+    @info "Symbolic Execution Stage"
     t1 = time()
     begin
         cfgs1 = QuantSymEx(cfg1)
         cfgs2 = QuantSymEx(cfg2)
     end
 
-    #@info "SMT Solver Stage"
+    @info "SMT Solver Stage"
     t2 = time()
     begin
         res = true
@@ -251,6 +251,8 @@ function check_toric_decoder(d::Integer)
 
     res, t3-t0, t1-t0, t2-t1, t3-t2
 end
+
+check_toric_decoder(3) # precompile time
 
 open("toric_code.dat", "w") do io
   println(io, "nq all init qse smt")

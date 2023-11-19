@@ -30,6 +30,7 @@ using Z3
     # precompile file and potentially make loading faster.
     _ctx = Z3.Context()
     @qprog id_circuit (n) begin
+        s = [j for j in 1:n]
         for j in 1:n
             H(j)
         end
@@ -48,7 +49,7 @@ using Z3
         # all calls in this block will be precompiled, regardless of whether
         # they belong to your package or not (on Julia 1.8 and higher)
         stabilizer = zeros(Bool, n, 2*n)
-	    phases = Vector{Z3.ExprAllocated}(undef, n)
+	      phases = Vector{Z3.ExprAllocated}(undef, n)
 
         for j in 1:n
             stabilizer[j,j+n] = true

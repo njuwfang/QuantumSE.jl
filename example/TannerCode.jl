@@ -260,6 +260,8 @@ function check_tanner_decoder(m,k)
     res, t3-t0, t1-t0, t2-t1, t3-t2
 end
 
+check_tanner_decoder(1,1) # precompile time
+
 open("tanner_code.dat", "w") do io
   println(io, "nq all init qse smt")
   println("nq all init qse smt")
