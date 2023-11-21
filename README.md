@@ -6,7 +6,7 @@ By symbolizing the phases of stabilizer states, **symbolic stabilizer states**  
 to characterize the possible adversarial errors in quantum error correction (QEC) programs.
 In this way, QSE with symbolic stabilizer states facilitate the efficient analysis of QEC programs.
 
-See [the arXiv paper]() for more details.
+See [the arXiv paper](https://arxiv.org/abs/2311.11313) for more details.
 
 ## Installation
 
