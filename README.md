@@ -10,10 +10,11 @@ See [the arXiv paper](https://arxiv.org/abs/2311.11313) for more details.
 
 ## Installation
 
-To install it, run [Julia 1.9+](https://julialang.org/downloads/) REPL and use:
+To install it, run [Julia 1.10+](https://julialang.org/downloads/) REPL and use:
 
+###### Due to julia's upgrade, there may be problems with the Z3 dependency
 ```
-] add https://github.com/njuwfang/QuantumSE.jl.git Z3
+] add z3_jll#z3-v4.12.4+0 Z3#master https://github.com/njuwfang/QuantumSE.jl.git
 ```
 
 #### SMT Solver

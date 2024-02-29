@@ -2,13 +2,13 @@ using LoopVectorization
 using LinearAlgebra: Adjoint, Transpose
 using SimpleGF2 # https://github.com/scheinerman/SimpleGF2.jl
 
-import SimpleGF2: +, -, * 
+#import SimpleGF2: +, -, * 
 
-@inline +(x::GF2, y::GF2) = GF2(x.val != y.val)
-@inline -(x::GF2) = x
-@inline -(x::GF2, y::GF2) = x + y
+#@inline +(x::GF2, y::GF2) = GF2(x.val != y.val)
+#@inline -(x::GF2) = x
+#@inline -(x::GF2, y::GF2) = x + y
 
-@inline *(x::GF2, y::GF2) = GF2(x.val & y.val)
+#@inline *(x::GF2, y::GF2) = GF2(x.val & y.val)
 
 @inline Base.UInt8(x::GF2) = x.val
 @inline Base.conj(x::GF2) = x
