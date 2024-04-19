@@ -18,6 +18,7 @@ open("benchmark_quantumse.dat", "w") do io
     t1 = time()
     sampler(10000)
     t2 = time()
+    GC.gc() # gc caused time exception
     println(io, "$(j) $(t1-t0) $(t2-t1)")
     println("$(j) $(t1-t0) $(t2-t1)")
   end

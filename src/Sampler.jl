@@ -64,18 +64,20 @@ function Sampler(bv_expressions, p)
     ### n_errors = 0
     H = sparse(IH, JH, VH, n_errors+n_measures+1, ns)
 
-    sampler = shots -> begin
-        xz = rand(UInt64, (shots-1)>>6+1, n_measures+1)
-        @inbounds @simd for j in axes(xz, 1)
-            xz[j,n_measures+1] = typemax(UInt64)
-        end
-        samples = Matrix{UInt64}(undef, (shots-1)>>6+1, ns)
-        bits_mul_s_uint8s!(samples, xz, H)
-        samples
-    end
+    sampler = shots -> _Sampler(shots, H, n_measures, ns)
     precompile(sampler, (Int,))
 
     sampler
+end
+
+function _Sampler(shots, H, n_measures, ns)
+    xz = rand(UInt64, (shots-1)>>6+1, n_measures+1)
+    @inbounds @simd for j in axes(xz, 1)
+        xz[j,n_measures+1] = typemax(UInt64)
+    end
+    samples = Matrix{UInt64}(undef, (shots-1)>>6+1, ns)
+    bits_mul_s_uint8s!(samples, xz, H)
+    samples
 end
 
 function parse_stim(stim_file_name::String, ctx)

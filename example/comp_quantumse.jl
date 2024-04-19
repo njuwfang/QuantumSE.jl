@@ -75,13 +75,18 @@ function prove_id(n)
         end
     end
 
-    println(res)
+    res
 end
 
 prove_id(1)
 
-for j in 1:20
-    start = time()
-    prove_id(j)
-    println("Runtime for $(j): ", time() - start)
+open("comp_quantumse.dat", "w") do io
+    println(io, "nq time")
+    for j in 1:20
+        start = time()
+        res = prove_id(j)
+        t = time() - start
+        println("$(res)\nRuntime for $(j): ", t)
+        println(io, "$(j) $(t)")
+    end
 end

@@ -35,12 +35,11 @@ def prove_id(n: int, delta=0.0001):
     print(sat)
 
 if __name__ == "__main__":
-    for i in range(1,21):
-        times = []
-
-        for _ in range(1):
+    with open("./comp_symqv.dat", "w") as io:
+        print("nq time", file=io)
+        for i in range(1,21):
             start = time.time()
             prove_id(i)
-            times.append(time.time() - start)
-
-        print(f'Runtime for {i}:', np.mean(times))
+            t = time.time() - start
+            print(f'Runtime for {i}:', t)
+            print(f"{i} {t}", file=io)
