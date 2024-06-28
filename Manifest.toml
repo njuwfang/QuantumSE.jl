@@ -381,6 +381,7 @@ version = "0.21.70"
 [[deps.Z3]]
 deps = ["CxxWrap", "z3_jll"]
 git-tree-sha1 = "229e2a62a582f96247d4225fa81fee189c7a14b7"
+pinned = true
 repo-rev = "b0ff00a"
 repo-url = "https://github.com/ahumenberger/Z3.jl.git"
 uuid = "06b161dc-0161-11ea-0f74-41f836f4024b"
@@ -400,6 +401,7 @@ version = "0.11.2+1"
 [[deps.z3_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "GMP_jll", "JLLWrappers", "Libdl", "libcxxwrap_julia_jll"]
 git-tree-sha1 = "f11919f24484ee9c355a846bbd15e8401c5d2fea"
+pinned = true
 repo-rev = "z3-v4.12.4+0"
 repo-url = "https://github.com/JuliaBinaryWrappers/z3_jll.jl.git"
 uuid = "1bc4e1ec-7839-5212-8f2f-0d16b7bd09bc"
