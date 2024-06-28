@@ -15,6 +15,7 @@ SimpleGF2 = "26dc7fb7-0d88-57af-8ff4-0a7e14249ddd"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Z3 = "06b161dc-0161-11ea-0f74-41f836f4024b"
+z3_jll = "1bc4e1ec-7839-5212-8f2f-0d16b7bd09bc"
 
 [compat]
 julia = "1.9"
