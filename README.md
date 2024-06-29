@@ -49,14 +49,12 @@ Then in julia's REPL pkg mode, execute:
 (QuantumSE) pkg> instantiate
 ```
 
-### SMT Solver
+### SMT Solver - Manual installation (Ubuntu 22.04, 20.04)
 
 QuantumSE.jl uses [Bitwuzla](https://github.com/bitwuzla/bitwuzla) as the default solver.
 
 To install our experimental version, please follow the instructions below:
  
-### Manual installation (Ubuntu 22.04, 20.04)
-
 1. Install required dependencies:
     
     ```bash
