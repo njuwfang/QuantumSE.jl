@@ -66,7 +66,7 @@ To install our experimental version, please follow the instructions below:
     ```bash
     pip install meson ninja
     ```
-2. Clone our forked repo of Bitwuzla  and cd to it.
+2. Clone our forked repo of Bitwuzla and cd to it.
 
     ```bash
     git clone https://github.com/njuwfang/bitwuzla-for-QuantumSE.git && cd bitwuzla-for-QuantumSE
@@ -92,6 +92,8 @@ To install our experimental version, please follow the instructions below:
 
 ### Finding Bugs in QEC Programs
 
+> NOTE: If running ubuntu in WSL, after installing `QuantumSE` and `Bitwuzla` in julia REPL, run `julia> include("<path to example>\TannerCode.jl")` and similarly for others.
+
 1. Repetition codes:
     ```bash
     julia RepetitionCode.jl
@@ -106,8 +108,6 @@ To install our experimental version, please follow the instructions below:
     julia TannerCode.jl
     ```
 The performance results are stored in `.dat` files.
-
-> NOTE: If running ubuntu in WSL, after installing `QuantumSE` and `Bitwuzla` in julia REPL, run `julia> include("<path to example>\TannerCode.jl")`
 
 ### Comparing [symQV](https://github.com/fabianbauermarquart/symQV)
 
