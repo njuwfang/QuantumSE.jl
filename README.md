@@ -49,7 +49,7 @@ Then in julia's REPL pkg mode, execute:
 (QuantumSE) pkg> instantiate
 ```
 
-### SMT Solver(`Bitwuzla`)
+### SMT Solver
 
 QuantumSE.jl uses [Bitwuzla](https://github.com/bitwuzla/bitwuzla) as the default solver.
 
