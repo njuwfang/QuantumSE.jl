@@ -135,14 +135,14 @@ function check_repetition_decoder(n)
     res, t3-t0, t1-t0, t2-t1, t3-t2
 end
 
-check_repetition_decoder(20) # precompile time
+# check_repetition_decoder(20) # precompile time
 
 open("repetition_code.dat", "w") do io
-  println(io, "nq all init qse smt")
-  println("nq all init qse smt")
-  for j in 1:28
-    res, all, init, qse, smt = check_repetition_decoder(50*j)
-    println(io, "$(50*j) $(all) $(init) $(qse) $(smt)")
-    println("$(j)/28: $(50*j) $(all) $(init) $(qse) $(smt)")
+  println(io, "nq: res all init qse smt")
+  println("nq: res all init qse smt")
+  for j in 3:10
+    res, all, init, qse, smt = check_repetition_decoder(j)
+    println(io, "$(j): $(res) $(all) $(init) $(qse) $(smt)")
+    println("$(j): $(res) $(all) $(init) $(qse) $(smt)")
   end
 end
