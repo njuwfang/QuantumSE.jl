@@ -6,7 +6,7 @@ using InvertedIndices
 @inline _mod(j) = (j-1)>>6 + 1
 @inline _rem(j) = UInt64(0x1) << ((j-1)&(0x3f))
 
-_len2(j) = Int(ceil(log2(j)))
+_len2(j) = Int(ceil(log2(j))) + 1
 
 @inline _bv_val(ctx, v::Integer) = bv_val(ctx, v, 1)
 @inline _bv_const(ctx, s::String) = bv_const(ctx, s, 1)
