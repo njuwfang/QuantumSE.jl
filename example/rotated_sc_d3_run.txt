@@ -1,0 +1,73 @@
+julia> include("example/RotatedSC_d3.jl")
+[ Info: Initailization Stage
+Encoded stabilizer : Bool[
+  1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
+  0 1 1 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0;
+  0 0 0 1 1 0 1 1 0 0 0 0 0 0 0 0 0 0;
+  0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 0 0 0;
+  0 0 0 0 0 0 0 0 0 1 1 0 1 1 0 0 0 0;
+  0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 0 0;
+  0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 0;
+  0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 1 1;
+  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+Expected Len(phases) = 18,; Got 18
+[ Info: Symbolic Execution Stage
+begin
+    CNOT(b[1], b[2])
+    CNOT(b[3], b[4])
+    CNOT(b[3], b[1])
+    H(b[3])
+    res = M(b[3], Expr(:string, "M_surface_code_x_m_", b[3], "_11"))
+    H(b[3])
+    CNOT(b[3], b[1])
+    CNOT(b[3], b[4])
+    CNOT(b[1], b[2])
+    res
+end
+begin
+    begin
+        length(b) == 2
+    end
+    begin
+        CNOT(b[1], b[2])
+        H(b[1])
+        res = M(b[1], Expr(:string, "M_surface_code_x_m_", b[1], "_12"))
+        H(b[1])
+        CNOT(b[1], b[2])
+    end
+    begin
+        res = -100
+    end
+    res
+end
+ERROR: LoadError: MethodError: no method matching &(::Tuple{Z3.ExprAllocated, Z3.ExprAllocated}, ::Bool)
+
+Closest candidates are:
+  &(::Any, ::Any, ::Any, ::Any...)
+   @ Base operators.jl:587
+  &(::Static.True, ::Bool)
+   @ Static ~/.julia/packages/Static/JHq8v/src/Static.jl:495
+  &(::Bool, ::Bool)
+   @ Base bool.jl:38
+  ...
+
+Stacktrace:
+ [1] QuantSymEx(cfg::SymConfig)
+   @ QuantumSE /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:140
+ [2] QuantSymEx(cfg::SymConfig)
+   @ QuantumSE /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:121
+ [3] QuantSymEx(cfg::SymConfig)
+   @ QuantumSE /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:72
+ [4] QuantSymEx(cfg::SymConfig)
+   @ QuantumSE /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:109
+ [5] QuantSymEx(cfg::SymConfig) (repeats 2 times)
+   @ QuantumSE /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:125
+ [6] check_surface_code_decoder(d::Int64)
+   @ Main /home/manvi-agrawal/QuantumSE.jl/example/RotatedSC_d3.jl:210
+ [7] top-level scope
+   @ /home/manvi-agrawal/QuantumSE.jl/example/RotatedSC_d3.jl:241
+ [8] include(fname::String)
+   @ Base.MainInclude ./client.jl:489
+ [9] top-level scope
+   @ REPL[20]:1
+in expression starting at /home/manvi-agrawal/QuantumSE.jl/example/RotatedSC_d3.jl:241

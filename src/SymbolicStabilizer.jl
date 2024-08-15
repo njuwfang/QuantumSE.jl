@@ -24,6 +24,7 @@ struct SymStabilizerState <: AbstractSymQuantumState
 
     SymStabilizerState(num_qubits::Integer, Tableau::Matrix{Bool}, phases::Vector{Z3.ExprAllocated}, ctx::Z3.ContextAllocated) = begin
         @assert size(Tableau) == (2*num_qubits, 2*num_qubits)
+        println("Expected Len(phases) = $(2*num_qubits),; Got $(length(phases))")
         @assert length(phases) == 2*num_qubits
         
         len = num_qubits>>6 + 1
@@ -515,7 +516,7 @@ function check_state_equivalence(q1::SymStabilizerState, q2::SymStabilizerState,
     _canonicalize_gott!(q2)
 
     if ~_equal(q1.xzs, q2.xzs, ranges)
-        @info "The Stabilizer does not match, the program is wrong even without error insertion"
+        @error "The Stabilizer does not match, the program is wrong even without error insertion"
         return false
     end
 
@@ -549,18 +550,23 @@ function check_state_equivalence(q1::SymStabilizerState, q2::SymStabilizerState,
             open(smt2_file_name*".output", "w") do io
                 println(io, res_string)
             end
-            @info "The assignment that generates the bug has been written to ./$(smt2_file_name).output"
+            @error "The assignment that generates the bug has been written to ./$(smt2_file_name).output"
             return false
         end
     end
 
     Z3.reset(slv)
 
-    conjecture = reduce(&, [simplify(q1.phases[j] ⊻ q2.phases[j]) == _bv_val(q1.ctx, 0) for j in ranges])
+    println("Slv after pre-cond reset: $(slv)")
 
+    conjecture = reduce(&, [simplify(q1.phases[j] ⊻ q2.phases[j]) == _bv_val(q1.ctx, 0) for j in ranges])
+    
+    println("Conjecture by reduce: $(conjecture)")
     conjecture = assumptions[1] & assumptions[3] & not(conjecture)
 
+    println("A1: $(assumptions[1])")
     add(slv, conjecture)
+    println("A3: $(assumptions[3])")
 
     if use_z3
         res = check(slv)
@@ -586,7 +592,7 @@ function check_state_equivalence(q1::SymStabilizerState, q2::SymStabilizerState,
             open(smt2_file_name*".output", "w") do io
                 println(io, res_string)
             end
-            @info "The assignment that generated the bug has been written to ./$(smt2_file_name).output"
+            @error "The assignment that generated the bug has been written to ./$(smt2_file_name).output"
             return false
         end
     end

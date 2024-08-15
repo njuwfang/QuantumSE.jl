@@ -22,6 +22,8 @@ function mwpm(d::Integer, s, s_type)
     # pre-condition
     ϕ₁ = simplify(reduce(⊻, s)) == _bv_val(ctx, 0)
 
+    println("precondition 1: $(ϕ₁)")
+
     # post-condition
     ϕ₂ = bool_val(ctx, true)
     adj = s_type == "X" ? _xadj : _zadj
@@ -31,6 +33,9 @@ function mwpm(d::Integer, s, s_type)
     end
 
     ϕ₃ = (sum( (x -> concat(bv_val(ctx, 0, _len2(2*d*d)), x)).(r) ) <= bv_val(ctx, (d-1)÷2, _len2(2*d*d)+1))
+
+    println("post-condition 2: $(ϕ₂)")
+    println("post-condition 3: $(ϕ₃)")
 
     (r, ϕ₁, ϕ₂ & ϕ₃)
 end
@@ -88,6 +93,7 @@ end
 function toric_lx1(d::Integer)
 	s = zeros(Bool, 4*d*d)
 
+    # d, 2d, 3d, ... , d*d
 	@inbounds @simd for i in 1:d
 		s[i*d] = true
 	end
@@ -98,6 +104,7 @@ end
 function toric_lx2(d::Integer)
 	s = zeros(Bool, 4*d*d)
 
+    # d*d + [1, 2, ..., d]
 	@inbounds @simd for i in 1:d
 		s[d*d+i] = true
 	end
@@ -108,8 +115,9 @@ end
 function toric_lz1(d::Integer)
 	s = zeros(Bool, 4*d*d)
 
+    # Z-> d*d + [d, 2d, 3d, ... , d*d]
 	@inbounds @simd for i in 1:d
-		s[3*d*d+i*d] = true
+		s[2*d*d + d*d+i*d] = true
 	end
 
 	s
@@ -118,6 +126,7 @@ end
 function toric_lz2(d::Integer)
 	s = zeros(Bool, 4*d*d)
 
+    # Z-> [1, 2, ..., d]
 	@inbounds @simd for i in 1:d
 		s[2*d*d+i] = true
 	end
@@ -252,14 +261,14 @@ function check_toric_decoder(d::Integer)
     res, t3-t0, t1-t0, t2-t1, t3-t2
 end
 
-check_toric_decoder(3) # precompile time
+# check_toric_decoder(3) # precompile time
 
 open("toric_code.dat", "w") do io
-  println(io, "nq all init qse smt")
-  println("nq all init qse smt")
-  for d in 4:27
+  println(io, "nq res all init qse smt")
+  println("nq res all init qse smt")
+  for d in 3:3
     res, all, init, qse, smt = check_toric_decoder(d)
-    println(io, "$(d*d*2) $(all) $(init) $(qse) $(smt)")
-    println("$(d)/27: $(d*d*2) $(all) $(init) $(qse) $(smt)")
+    println(io, "$(d) : $(res) $(d*d*2) $(all) $(init) $(qse) $(smt)")
+    println("$(d): $(res) $(d*d*2) $(all) $(init) $(qse) $(smt)")
   end
 end
