@@ -3,7 +3,7 @@ using Z3
 
 ctx = Context()
 
-function _xadj(idx, d)
+function _xadj(d, idx)
     if idx == 1
         return [1, 2]
     elseif idx == 2
@@ -16,10 +16,10 @@ function _xadj(idx, d)
     else
         return [] 
     end
-    
+
 end
 
-function _zadj(idx, d)
+function _zadj(d, idx)
     if idx == 1
         return [1, 2, 4, 5]
     elseif idx == 3
@@ -31,7 +31,7 @@ function _zadj(idx, d)
     else
         return [] 
     end
-    
+
 end
 
 function mwpm(d::Integer, s, s_type)
@@ -45,13 +45,13 @@ function mwpm(d::Integer, s, s_type)
     # post-condition
     ϕ₂ = bool_val(ctx, true)
 
-    adj = idx -> s_type == "X" ? _xadj(idx, d) : _zadj(idx, d)
+    adj = idx -> s_type == "X" ? _xadj(d, idx) : _zadj(d, idx)
     qs = s_type == "X" ? xq : zq
 
     r = [_bv_const(ctx, "r_$(s_type)_$(j)") for j in 1:d*d]
 
-    for j in qs
-        ϕ₂ = ϕ₂ & ((s[j] ⊻ reduce(⊻, r[[adj(j)...]])) == _bv_val(ctx, 0))
+    for j in eachindex(qs)
+        ϕ₂ = ϕ₂ & ((s[j] ⊻ reduce(⊻, r[[adj(qs[j])...]])) == _bv_val(ctx, 0))
     end
 
 
@@ -72,14 +72,16 @@ end
         CNOT(b[2], b[4])
         CNOT(b[3], b[4])
         CNOT(b[1], b[2])
-    elseif length(b) == 2
-        CNOT(b[1], b[2])
-        res = M(b[1])
-        CNOT(b[1], b[2])
     else
-        res = -100
+        if length(b) == 2
+            CNOT(b[1], b[2])
+            res = M(b[1])
+            CNOT(b[1], b[2])
+        else
+            res = -100
+        end
     end
-    
+
     res
 end
 
@@ -98,16 +100,18 @@ end
         CNOT(b[3], b[4])
         CNOT(b[1], b[2])
 
-    elseif length(b) == 2
-        CNOT(b[1], b[2])
-        H(b[1])
-        res = M(b[1])
-        H(b[1])
-        CNOT(b[1], b[2])
     else
-        res = -100
+        if length(b) == 2
+            CNOT(b[1], b[2])
+            H(b[1])
+            res = M(b[1])
+            H(b[1])
+            CNOT(b[1], b[2])
+        else
+            res = -100
+        end
     end
-    
+
     res
 end
 
@@ -118,14 +122,14 @@ end
 
     s_x = [surface_code_x_m(d, j) for j in xq]
     s_z = [surface_code_z_m(d, j) for j in zq]
-    
+
     r_x = mwpm(d, s_x, "X")
     r_z = mwpm(d, s_z, "Z")
 
     print("rx=$(r_x)")
     print("rz=$(r_z)")
 
-    
+
     for j in 1:d*d
         sZ(j, r_x[j])
         sX(j, r_z[j])
@@ -154,7 +158,7 @@ function check_surface_code_decoder(d::Integer)
         xq = [1, 2, 4, 8]
 
         for r in 1:4
-            for x_adj in _xadj(xq[r], 3)
+            for x_adj in _xadj(3,xq[r])
                 stabilizer[r, x_adj] = true
             end
         end
@@ -162,11 +166,15 @@ function check_surface_code_decoder(d::Integer)
         zq = [1, 3, 4, 5]
 
         for r in 1:4
-            for z_adj in _zadj(zq[r], 3)
+            for z_adj in _zadj(3,zq[r])
                 stabilizer[4+r, num_qubits+z_adj] = true
             end
         end
 
+        stabilizer[9,2] = true
+        stabilizer[9,5] = true
+        stabilizer[9,8] = true
+        
         println("Encoded stabilizer : $(stabilizer)")
 
 
@@ -175,10 +183,11 @@ function check_surface_code_decoder(d::Integer)
 	    lx = _bv_const(ctx, "lx")
 	    lz = _bv_const(ctx, "lz")
 
-	    @simd for i in 1:num_qubits
+	    for i in 1:num_qubits-1
 	    	phases[i] = _bv_val(ctx, 0)
 	    end
 
+        phases[9] = lx
 
         ρ01 = from_stabilizer(num_qubits, stabilizer, phases, ctx)
         ρ1 = copy(ρ01)

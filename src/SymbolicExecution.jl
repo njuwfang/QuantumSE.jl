@@ -135,10 +135,17 @@ function QuantSymEx(cfg::SymConfig)
         else
             S2.args = cfg.S.args[2:end]
         end
-        println(S1)
-        println(S2)
-        cfg1 = SymConfig(S1, cfg.σ, cfg.ρ, cfg.P, cfg.ϕ & ϕ, cfg.ctx)
-        cfg2 = SymConfig(S2, cfg.σ, cfg.ρ, cfg.P, cfg.ϕ & (ϕ isa Bool ? ~(ϕ) : not(ϕ)), cfg.ctx)
+        if ϕ isa Bool
+            if ϕ
+                cfg1 = SymConfig(S1, cfg.σ, cfg.ρ, cfg.P, cfg.ϕ, cfg.ctx)
+                return QuantSymEx(cfg1)
+            else
+                cfg2 = SymConfig(S2, cfg.σ, cfg.ρ, cfg.P, cfg.ϕ, cfg.ctx)
+                return QuantSymEx(cfg2)
+            end
+        end
+        cfg1 = SymConfig(S1, cfg.σ, cfg.ρ, cfg.P, (cfg.ϕ[1] & ϕ, cfg.ϕ[2]), cfg.ctx)
+        cfg2 = SymConfig(S2, cfg.σ, cfg.ρ, cfg.P, (cfg.ϕ[1] & not(ϕ), cfg.ϕ[2]), cfg.ctx)
         return vcat(QuantSymEx(cfg1)..., QuantSymEx(cfg2)...)
     elseif inst.head == :for
         inst.args[2] = postwalk(
