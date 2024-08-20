@@ -136,9 +136,9 @@ end
     end
 
     # a strange bug
-    # e = reduce(&, r_z[1:(d-1)÷2])
+    e = reduce(&, r_z[1:(d-1)÷2])
 
-    # sX(1, e)
+    sX(1, e)
 
 end
 
@@ -228,6 +228,7 @@ function check_surface_code_decoder(d::Integer)
         # for cfg in cfgs1
         if !check_state_equivalence(
             ρ01, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg1.ϕ[1], cfg1.ϕ[2]),
+            # cfg.ρ, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg.ϕ[1], cfg.ϕ[2]),
             `bitwuzla --smt-comp-mode true -rwl 0 -S kissat`
             #`bitwuzla --smt-comp-mode true -S kissat`
             #`bitwuzla --smt-comp-mode true -rwl 0`
