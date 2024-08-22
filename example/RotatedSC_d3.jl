@@ -3,113 +3,56 @@ using Z3
 
 ctx = Context()
 
-function _xadj(d, idx)
-    if idx == 1
-        return [1, 2]
-    elseif idx == 2
-            return [2, 3, 5, 6]
-    elseif idx == 4
-        return [4, 5, 7, 8]
+function css_check(d, s, s_type, nq, adj)
 
-    elseif idx == 8
-        return [8, 9]
-    else
-        return [] 
-    end
+    ## pre-condition
+    ϕ₁ = bool_val(ctx, true)
 
-end
-
-function _zadj(d, idx)
-    if idx == 1
-        return [1, 2, 4, 5]
-    elseif idx == 3
-            return [3, 6]
-    elseif idx == 4
-        return [4, 7]
-    elseif idx == 5
-        return [5, 6, 8, 9]
-    else
-        return [] 
-    end
-
-end
-
-function mwpm(d::Integer, s, s_type)
-
-    xq = [1, 2, 4, 8]
-    zq = [1, 3, 4, 5]
-
-    # pre-condition
-    ϕ₁ = simplify(reduce(⊻, s)) == _bv_val(ctx, 0)
-
-    # post-condition
+    ## post-condition
     ϕ₂ = bool_val(ctx, true)
-
-    adj = idx -> s_type == "X" ? _xadj(d, idx) : _zadj(d, idx)
-    qs = s_type == "X" ? xq : zq
-
-    r = [_bv_const(ctx, "r_$(s_type)_$(j)") for j in 1:d*d]
-
-    for j in eachindex(qs)
-        ϕ₂ = ϕ₂ & ((s[j] ⊻ reduce(⊻, r[[adj(qs[j])...]])) == _bv_val(ctx, 0))
+    r = [_bv_const(ctx, "r_$(s_type)_$(j)") for j in 1:nq]
+    for j in 1:length(s)
+        ϕ₂ = ϕ₂ & (s[j] ⊻ reduce(⊻,  r[adj(j)]) == _bv_val(ctx, 0))
     end
 
-
-
-    ϕ₃ = (sum( (x -> concat(bv_val(ctx, 0, _len2(2*d*d)), x)).(r) ) <= bv_val(ctx, (d-1)÷2, _len2(2*d*d)+1))
+    ϕ₃ = (sum( (x -> concat(bv_val(ctx, 0, _len2(nq)), x)).(r) ) <= bv_val(ctx, (d-1)÷2, _len2(nq)+1))
 
     (r, ϕ₁, ϕ₂ & ϕ₃)
 end
 
-@qprog surface_code_z_m (d, idx) begin
-    b = _zadj(d, idx)
 
-    if length(b) == 4
-        CNOT(b[1], b[2])
-        CNOT(b[3], b[4])
-        CNOT(b[2], b[4])
-        res = M(b[4])
-        CNOT(b[2], b[4])
-        CNOT(b[3], b[4])
-        CNOT(b[1], b[2])
-    else
-        if length(b) == 2
-            CNOT(b[1], b[2])
-            res = M(b[1])
-            CNOT(b[1], b[2])
-        else
-            res = -100
-        end
+@qprog surface_code_x_m (idx) begin
+    b = _xadj(idx)
+
+    println("SC X_m($(idx))...")
+
+    nb = length(b)
+    for j in 2:nb
+        CNOT(b[1], b[j])
+    end
+    H(b[1])
+    res = M(b[1])
+    H(b[1])
+    for j in nb:-1:2
+        CNOT(b[1], b[j])
     end
 
     res
 end
 
+@qprog surface_code_z_m (idx) begin
+    b = _zadj(idx)
 
-@qprog surface_code_x_m (d, idx) begin
-    b = _xadj(d, idx)
+    println("SC Z_m($(idx))...")
 
-    if length(b) == 4
-        CNOT(b[1], b[2])
-        CNOT(b[3], b[4])
-        CNOT(b[3], b[1])
-        H(b[3])
-        res = M(b[3])
-        H(b[3])
-        CNOT(b[3], b[1])
-        CNOT(b[3], b[4])
-        CNOT(b[1], b[2])
 
-    else
-        if length(b) == 2
-            CNOT(b[1], b[2])
-            H(b[1])
-            res = M(b[1])
-            H(b[1])
-            CNOT(b[1], b[2])
-        else
-            res = -100
-        end
+    nb = length(b)
+    for j in 2:nb
+        CNOT(b[j], b[1])
+    end
+    res = M(b[1])
+    for j in nb:-1:2
+        CNOT(b[j], b[1])
     end
 
     res
@@ -117,17 +60,19 @@ end
 
 @qprog surface_code_decoder (d) begin
 
+    nq = d*d 
+
     xq = [1, 2, 4, 8]
     zq = [1, 3, 4, 5]
 
-    s_x = [surface_code_x_m(d, j) for j in xq]
-    s_z = [surface_code_z_m(d, j) for j in zq]
+    s_x = [surface_code_x_m(j) for j in xq]
+    s_z = [surface_code_z_m(j) for j in zq]
 
-    r_x = mwpm(d, s_x, "X")
-    r_z = mwpm(d, s_z, "Z")
+    r_x = css_check(d, s_x, "X", nq, _xadj)
+    r_z = css_check(d, s_z, "Z", nq, _zadj)
 
-    print("rx=$(r_x)")
-    print("rz=$(r_z)")
+    # print("rx=$(r_x)")
+    # print("rz=$(r_z)")
 
 
     for j in 1:d*d
@@ -136,9 +81,9 @@ end
     end
 
     # a strange bug
-    e = reduce(&, r_z[1:(d-1)÷2])
+    # e = reduce(&, r_z[1:(d-1)÷2])
 
-    sX(1, e)
+    # sX(1, e)
 
 end
 
@@ -155,10 +100,19 @@ function check_surface_code_decoder(d::Integer)
 
 	    stabilizer = fill(false, num_qubits, 2*num_qubits)
 
+        X_idxs = [[2, 3, 5, 6], [4, 5, 7, 8], [1, 2], [8, 9]]
+
+        Z_idxs = [[1, 2, 4, 5], [5, 6, 8, 9], [4, 7], [3, 6]]
+
+
+        _xadj(i) = [ x for x in X_idxs if x[1] == i][1] # _xadj(2) = Vector(2, 3, 5, 6)
+        _zadj(i) = [ z for z in Z_idxs if z[1] == i][1]
+
         xq = [1, 2, 4, 8]
 
         for r in 1:4
-            for x_adj in _xadj(3,xq[r])
+            for x_adj in _xadj(xq[r])
+                # println("r=$(r), x_adj=$(x_adj)")
                 stabilizer[r, x_adj] = true
             end
         end
@@ -166,7 +120,7 @@ function check_surface_code_decoder(d::Integer)
         zq = [1, 3, 4, 5]
 
         for r in 1:4
-            for z_adj in _zadj(3,zq[r])
+            for z_adj in _zadj(zq[r])
                 stabilizer[4+r, num_qubits+z_adj] = true
             end
         end
@@ -174,6 +128,8 @@ function check_surface_code_decoder(d::Integer)
         stabilizer[9,2] = true
         stabilizer[9,5] = true
         stabilizer[9,8] = true
+
+        
         
         println("Encoded stabilizer : $(stabilizer)")
 
@@ -200,7 +156,7 @@ function check_surface_code_decoder(d::Integer)
             (:_xadj, _xadj),
             (:_zadj, _zadj),
             (:ctx, ctx),
-            (:mwpm, mwpm)
+            (:css_check, css_check)
         ])
 
         num_x_errors = (d-1)÷2
@@ -216,7 +172,7 @@ function check_surface_code_decoder(d::Integer)
     @info "Symbolic Execution Stage"
     t1 = time()
     begin
-        cfgs1 = QuantSymEx(cfg1)
+        cfgs1 = QuantSymEx(cfg1) # ERROR: LoadError: BoundsError: attempt to access 0-element Vector{Vector{Int64}} at index [1]
         # cfgs2 = QuantSymEx(cfg2)
     end
 
@@ -225,18 +181,18 @@ function check_surface_code_decoder(d::Integer)
 
     begin
         res = true
-        # for cfg in cfgs1
+        for cfg in cfgs1
         if !check_state_equivalence(
-            ρ01, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg1.ϕ[1], cfg1.ϕ[2]),
-            # cfg.ρ, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg.ϕ[1], cfg.ϕ[2]),
+            # ρ01, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg1.ϕ[1], cfg1.ϕ[2]),
+            cfg.ρ, ρ01, (ϕ_x1 #=& ϕ_z1=#, cfg.ϕ[1], cfg.ϕ[2]),
             `bitwuzla --smt-comp-mode true -rwl 0 -S kissat`
             #`bitwuzla --smt-comp-mode true -S kissat`
             #`bitwuzla --smt-comp-mode true -rwl 0`
             )
             res = false
-            # break
+            break
         end
-        # end
+        end
 
     end
 

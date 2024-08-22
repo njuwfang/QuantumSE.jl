@@ -1,0 +1,48 @@
+[ Info: Initailization Stage
+Encoded stabilizer : Bool[1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0; 0 1 1 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 1 1 0 1 1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 1 0 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 1 1; 0 1 0 0 1 0 0 1 0 0 0 0 0 0 0 0 0 0]
+Expected Len(phases) = 18,; Got 18
+[ Info: Symbolic Execution Stage
+SC X_m(1)...
+SC X_m(2)...
+SC X_m(4)...
+SC X_m(8)...
+SC Z_m(1)...
+SC Z_m(3)...
+SC Z_m(4)...
+SC Z_m(5)...
+ERROR: LoadError: BoundsError: attempt to access 0-element Vector{Vector{Int64}} at index [1]
+Stacktrace:
+  [1] getindex
+    @ ./essentials.jl:13 [inlined]
+  [2] _xadj
+    @ /home/manvi-agrawal/QuantumSE.jl/example/RotatedSC_d3.jl:108 [inlined]
+  [3] css_check(d::Int64, s::Vector{Union{…}}, s_type::String, nq::Int64, adj::var"#_xadj#49"{Vector{…}})
+    @ Main /home/manvi-agrawal/QuantumSE.jl/example/RotatedSC_d3.jl:15
+  [4] top-level scope
+    @ none:1
+  [5] eval
+    @ ./boot.jl:385 [inlined]
+  [6] eval
+    @ /home/manvi-agrawal/QuantumSE.jl/src/QuantumSE.jl:1 [inlined]
+  [7] CEval
+    @ /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:31 [inlined]
+  [8] QuantSymEx(cfg::SymConfig)
+    @ QuantumSE /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:68
+  [9] QuantSymEx(cfg::SymConfig)
+    @ QuantumSE /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:118
+ [10] QuantSymEx(cfg::SymConfig) (repeats 2 times)
+    @ QuantumSE /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:114
+ [11] QuantSymEx(cfg::SymConfig) (repeats 2 times)
+    @ QuantumSE /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:125
+ [12] QuantSymEx(cfg::SymConfig)
+    @ QuantumSE /home/manvi-agrawal/QuantumSE.jl/src/SymbolicExecution.jl:121
+ [13] check_surface_code_decoder(d::Int64)
+    @ Main /home/manvi-agrawal/QuantumSE.jl/example/RotatedSC_d3.jl:175
+ [14] top-level scope
+    @ /home/manvi-agrawal/QuantumSE.jl/example/RotatedSC_d3.jl:207
+ [15] include(fname::String)
+    @ Base.MainInclude ./client.jl:489
+ [16] top-level scope
+    @ REPL[8]:1
+in expression starting at /home/manvi-agrawal/QuantumSE.jl/example/RotatedSC_d3.jl:207
+Some type information was truncated. Use `show(err)` to see complete types.
