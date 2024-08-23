@@ -62,11 +62,8 @@ end
 
     nq = d*d 
 
-    xq = [1, 2, 4, 8]
-    zq = [1, 3, 4, 5]
-
-    s_x = [surface_code_x_m(j) for j in xq]
-    s_z = [surface_code_z_m(j) for j in zq]
+    s_x = [surface_code_x_m(j) for j in 1:4]
+    s_z = [surface_code_z_m(j) for j in 1:4]
 
     r_x = css_check(d, s_x, "X", nq, _xadj)
     r_z = css_check(d, s_z, "Z", nq, _zadj)
@@ -81,9 +78,9 @@ end
     end
 
     # a strange bug
-    # e = reduce(&, r_z[1:(d-1)÷2])
+    e = reduce(&, r_z[1:(d-1)÷2])
 
-    # sX(1, e)
+    sX(1, e)
 
 end
 
@@ -105,22 +102,24 @@ function check_surface_code_decoder(d::Integer)
         Z_idxs = [[1, 2, 4, 5], [5, 6, 8, 9], [4, 7], [3, 6]]
 
 
-        _xadj(i) = [ x for x in X_idxs if x[1] == i][1] # _xadj(2) = Vector(2, 3, 5, 6)
-        _zadj(i) = [ z for z in Z_idxs if z[1] == i][1]
+        #_xadj(i) = [ x for x in X_idxs if x[1] == i][1] # _xadj(2) = Vector(2, 3, 5, 6)
+        _xadj(j) = X_idxs[j]
+        #_zadj(i) = [ z for z in Z_idxs if z[1] == i][1]
+        _zadj(j) = Z_idxs[j]
 
-        xq = [1, 2, 4, 8]
+        #xq = [1, 2, 4, 8]
 
         for r in 1:4
-            for x_adj in _xadj(xq[r])
+            for x_adj in X_idxs[r]#_xadj(xq[r])
                 # println("r=$(r), x_adj=$(x_adj)")
                 stabilizer[r, x_adj] = true
             end
         end
 
-        zq = [1, 3, 4, 5]
+        #zq = [1, 3, 4, 5]
 
         for r in 1:4
-            for z_adj in _zadj(zq[r])
+            for z_adj in Z_idxs[r]#_zadj(zq[r])
                 stabilizer[4+r, num_qubits+z_adj] = true
             end
         end
@@ -207,4 +206,3 @@ d = 3
 res, all, init, qse, smt = check_surface_code_decoder(d)
 println("d: res nq all init qse smt")
 println("$(d): $(res) $(d*d*2) $(all) $(init) $(qse) $(smt)")
-
